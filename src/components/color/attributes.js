@@ -11,16 +11,26 @@
 
 // IMPORTANT - default colors should be in hex for compatibility
 exports.defaults = [
-    '#1f77b4',  // muted blue
-    '#ff7f0e',  // safety orange
-    '#2ca02c',  // cooked asparagus green
-    '#d62728',  // brick red
-    '#9467bd',  // muted purple
-    '#8c564b',  // chestnut brown
-    '#e377c2',  // raspberry yogurt pink
-    '#7f7f7f',  // middle gray
-    '#bcbd22',  // curry yellow-green
-    '#17becf'   // blue-teal
+    '#2096f3',  // teal blue
+    '#FAA654',  // orange
+    '#5DCB7E',  // cooked asparagus green
+    '#FFE06E',  // pale yellow
+    '#0D94F6',  // muted blue
+    '#6DEDC7',  // mint green
+    '#FFCA74',  // pumkin yellow
+    '#89CEEF',  // denim blue
+    '#FFCF00',  // sunset yellow
+    '#85DFE3',  // aqua blue
+    '#B8F788',  // pastel green
+    '#6F86D6',  // violet sky
+    '#C2E9FB',  // cool water
+    '#B4C4DA',  // mirror grey
+    '#9FD4C4',  // algae green
+    '#998CE3',  // purple
+    '#AE4680',  // magenta
+    '#F77373',  // raspberry yogurt pink
+    '#FF8500',  // safety orange
+    '#E5CAB4',  // sand dust
 ];
 
 exports.defaultLine = '#444';
