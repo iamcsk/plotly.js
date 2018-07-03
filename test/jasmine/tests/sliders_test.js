@@ -6,9 +6,7 @@ var Plotly = require('@lib');
 var Lib = require('@src/lib');
 var createGraphDiv = require('../assets/create_graph_div');
 var destroyGraphDiv = require('../assets/destroy_graph_div');
-var failTest = require('../assets/fail_test');
-var delay = require('../assets/delay');
-var assertPlotSize = require('../assets/custom_assertions').assertPlotSize;
+var fail = require('../assets/fail_test');
 
 describe('sliders defaults', function() {
     'use strict';
@@ -102,20 +100,17 @@ describe('sliders defaults', function() {
             method: 'relayout',
             label: 'Label #1',
             value: 'label-1',
-            execute: true,
-            args: []
+            execute: true
         }, {
             method: 'update',
             label: 'Label #2',
             value: 'Label #2',
-            execute: true,
-            args: []
+            execute: true
         }, {
             method: 'animate',
             label: 'step-2',
             value: 'lacks-label',
-            execute: true,
-            args: []
+            execute: true
         }]);
     });
 
@@ -168,7 +163,7 @@ describe('sliders defaults', function() {
         });
     });
 
-    it('allows the `skip` method', function() {
+    it('allow the `skip` method', function() {
         layoutIn.sliders = [{
             steps: [{
                 method: 'skip',
@@ -297,7 +292,7 @@ describe('ugly internal manipulation of steps', function() {
             // The selected option no longer exists, so confirm it's
             // been fixed during the process of updating/drawing it:
             expect(gd._fullLayout.sliders[0].active).toEqual(0);
-        }).catch(failTest).then(done);
+        }).catch(fail).then(done);
     });
 });
 
@@ -312,7 +307,7 @@ describe('sliders interactions', function() {
     beforeEach(function(done) {
         gd = createGraphDiv();
 
-        mockCopy = Lib.extendDeep({}, mock, {layout: {sliders: [{x: 0.25}, {}]}});
+        mockCopy = Lib.extendDeep({}, mock);
 
         Plotly.plot(gd, mockCopy.data, mockCopy.layout).then(done);
     });
@@ -322,48 +317,15 @@ describe('sliders interactions', function() {
         destroyGraphDiv();
     });
 
-    it('positions sliders repeatably when they push margins', function(done) {
-        function checkPositions(msg) {
-            d3.select(gd).selectAll('.slider-group').each(function(d, i) {
-                var sliderBB = this.getBoundingClientRect();
-                var gdBB = gd.getBoundingClientRect();
-                if(i === 0) {
-                    expect(sliderBB.left - gdBB.left)
-                        .toBeWithin(12, 3, 'left: ' + msg);
-                }
-                else {
-                    expect(gdBB.bottom - sliderBB.bottom)
-                        .toBeWithin(8, 3, 'bottom: ' + msg);
-                }
-            });
-        }
-
-        checkPositions('initial');
-
-        Plotly.relayout(gd, {'sliders[0].x': 0.35, 'sliders[1].y': -0.3})
-        .then(function() {
-            checkPositions('increased left & bottom');
-
-            return Plotly.relayout(gd, {'sliders[0].x': 0.1, 'sliders[1].y': -0.1});
-        })
-        .then(function() {
-            checkPositions('back to original');
-        })
-        .catch(failTest)
-        .then(done);
-    });
-
     it('should draw only visible sliders', function(done) {
         expect(gd._fullLayout._pushmargin['slider-0']).toBeDefined();
         expect(gd._fullLayout._pushmargin['slider-1']).toBeDefined();
-        assertPlotSize({heightLessThan: 270}, 'initial');
 
         Plotly.relayout(gd, 'sliders[0].visible', false).then(function() {
             assertNodeCount('.' + constants.groupClassName, 1);
             expect(gd._fullLayout._pushmargin['slider-0']).toBeUndefined();
             expect(gd._fullLayout._pushmargin['slider-1']).toBeDefined();
             expect(gd.layout.sliders.length).toEqual(2);
-            assertPlotSize({heightLessThan: 270}, 'hide 0');
 
             return Plotly.relayout(gd, 'sliders[1]', null);
         })
@@ -372,7 +334,6 @@ describe('sliders interactions', function() {
             expect(gd._fullLayout._pushmargin['slider-0']).toBeUndefined();
             expect(gd._fullLayout._pushmargin['slider-1']).toBeUndefined();
             expect(gd.layout.sliders.length).toEqual(1);
-            assertPlotSize({height: 270}, 'delete 1');
 
             return Plotly.relayout(gd, {
                 'sliders[0].visible': true,
@@ -382,7 +343,6 @@ describe('sliders interactions', function() {
             assertNodeCount('.' + constants.groupClassName, 1);
             expect(gd._fullLayout._pushmargin['slider-0']).toBeDefined();
             expect(gd._fullLayout._pushmargin['slider-1']).toBeUndefined();
-            assertPlotSize({heightLessThan: 270}, 'reshow 0');
 
             return Plotly.relayout(gd, {
                 'sliders[1]': {
@@ -403,8 +363,7 @@ describe('sliders interactions', function() {
             expect(gd._fullLayout._pushmargin['slider-0']).toBeDefined();
             expect(gd._fullLayout._pushmargin['slider-1']).toBeDefined();
         })
-        .catch(failTest)
-        .then(done);
+        .catch(fail).then(done);
     });
 
     it('should respond to mouse clicks', function(done) {
@@ -413,7 +372,7 @@ describe('sliders interactions', function() {
         var railNode = firstGroup.node();
         var touchRect = railNode.getBoundingClientRect();
 
-        var originalFill = firstGrip.node().style.fill;
+        var originalFill = firstGrip.style('fill');
 
         // Dispatch a click on the right side of the bar:
         railNode.dispatchEvent(new MouseEvent('mousedown', {
@@ -422,7 +381,7 @@ describe('sliders interactions', function() {
         }));
 
         expect(mockCopy.layout.sliders[0].active).toEqual(5);
-        var mousedownFill = firstGrip.node().style.fill;
+        var mousedownFill = firstGrip.style('fill');
         expect(mousedownFill).not.toEqual(originalFill);
 
         // Drag to the left side:
@@ -431,21 +390,20 @@ describe('sliders interactions', function() {
             clientX: touchRect.left + 5,
         }));
 
-        var mousemoveFill = firstGrip.node().style.fill;
+        var mousemoveFill = firstGrip.style('fill');
         expect(mousemoveFill).toEqual(mousedownFill);
 
-        delay(100)()
-        .then(function() {
+        setTimeout(function() {
             expect(mockCopy.layout.sliders[0].active).toEqual(0);
 
             gd.dispatchEvent(new MouseEvent('mouseup'));
 
-            var mouseupFill = firstGrip.node().style.fill;
+            var mouseupFill = firstGrip.style('fill');
             expect(mouseupFill).toEqual(originalFill);
             expect(mockCopy.layout.sliders[0].active).toEqual(0);
-        })
-        .catch(failTest)
-        .then(done);
+
+            done();
+        }, 100);
     });
 
     it('should issue events on interaction', function(done) {
@@ -466,14 +424,15 @@ describe('sliders interactions', function() {
             cntEnd++;
         });
 
-        function assertEventCounts(starts, interactions, noninteractions, ends, msg) {
-            expect(cntStart).toBe(starts, 'starts: ' + msg);
-            expect(cntInteraction).toBe(interactions, 'interactions: ' + msg);
-            expect(cntNonInteraction).toBe(noninteractions, 'noninteractions: ' + msg);
-            expect(cntEnd).toBe(ends, 'ends: ' + msg);
+        function assertEventCounts(starts, interactions, noninteractions, ends) {
+            expect(
+                [cntStart, cntInteraction, cntNonInteraction, cntEnd]
+            ).toEqual(
+                [starts, interactions, noninteractions, ends]
+            );
         }
 
-        assertEventCounts(0, 0, 0, 0, 'initial');
+        assertEventCounts(0, 0, 0, 0);
 
         var firstGroup = gd._fullLayout._infolayer.select('.' + constants.railTouchRectClass);
         var railNode = firstGroup.node();
@@ -485,31 +444,30 @@ describe('sliders interactions', function() {
             clientX: touchRect.left + touchRect.width - 5,
         }));
 
-        delay(50)()
-        .then(function() {
+        setTimeout(function() {
             // One slider received a mousedown, one received an interaction, and one received a change:
-            assertEventCounts(1, 1, 1, 0, 'mousedown');
+            assertEventCounts(1, 1, 1, 0);
 
             // Drag to the left side:
             gd.dispatchEvent(new MouseEvent('mousemove', {
                 clientY: touchRect.top + 5,
                 clientX: touchRect.left + 5,
             }));
-        })
-        .then(delay(50))
-        .then(function() {
-            // On move, now to changes for the each slider, and no ends:
-            assertEventCounts(1, 2, 2, 0, 'mousemove');
 
-            gd.dispatchEvent(new MouseEvent('mouseup'));
-        })
-        .then(delay(50))
-        .then(function() {
-            // Now an end:
-            assertEventCounts(1, 2, 2, 1, 'mouseup');
-        })
-        .catch(failTest)
-        .then(done);
+            setTimeout(function() {
+                // On move, now to changes for the each slider, and no ends:
+                assertEventCounts(1, 2, 2, 0);
+
+                gd.dispatchEvent(new MouseEvent('mouseup'));
+
+                setTimeout(function() {
+                    // Now an end:
+                    assertEventCounts(1, 2, 2, 1);
+
+                    done();
+                }, 50);
+            }, 50);
+        }, 50);
     });
 
     function assertNodeCount(query, cnt) {

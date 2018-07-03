@@ -14,7 +14,6 @@ module.exports = {
 
     layoutAttributes: require('./attributes'),
     supplyLayoutDefaults: require('./defaults'),
-    includeBasePlot: require('../../plots/cartesian/include_components')('images'),
 
     draw: require('./draw'),
 

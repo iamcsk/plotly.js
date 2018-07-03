@@ -17,15 +17,16 @@ Scatter.hasMarkers = subtypes.hasMarkers;
 Scatter.hasText = subtypes.hasText;
 Scatter.isBubble = subtypes.isBubble;
 
+// traces with < this many points are by default shown
+// with points and lines, > just get lines
 Scatter.attributes = require('./attributes');
 Scatter.supplyDefaults = require('./defaults');
 Scatter.cleanData = require('./clean_data');
-Scatter.calc = require('./calc').calc;
+Scatter.calc = require('./calc');
 Scatter.arraysToCalcdata = require('./arrays_to_calcdata');
 Scatter.plot = require('./plot');
-Scatter.colorbar = require('./marker_colorbar');
-Scatter.style = require('./style').style;
-Scatter.styleOnSelect = require('./style').styleOnSelect;
+Scatter.colorbar = require('./colorbar');
+Scatter.style = require('./style');
 Scatter.hoverPoints = require('./hover');
 Scatter.selectPoints = require('./select');
 Scatter.animatable = true;
@@ -33,7 +34,7 @@ Scatter.animatable = true;
 Scatter.moduleType = 'trace';
 Scatter.name = 'scatter';
 Scatter.basePlotModule = require('../../plots/cartesian');
-Scatter.categories = ['cartesian', 'svg', 'symbols', 'errorBarsOK', 'showLegend', 'scatter-like', 'zoomScale'];
+Scatter.categories = ['cartesian', 'symbols', 'markerColorscale', 'errorBarsOK', 'showLegend', 'scatter-like'];
 Scatter.meta = {
     description: [
         'The scatter trace type encompasses line charts, scatter charts, text charts, and bubble charts.',

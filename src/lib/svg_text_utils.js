@@ -77,8 +77,7 @@ exports.convertToTspans = function(_context, gd, _callback) {
     if(tex) {
         ((gd && gd._promises) || []).push(new Promise(function(resolve) {
             _context.style('display', 'none');
-            var fontSize = parseInt(_context.node().style.fontSize, 10);
-            var config = {fontSize: fontSize};
+            var config = {fontSize: parseInt(_context.style('font-size'), 10)};
 
             texToSVG(tex[2], config, function(_svgEl, _glyphDefs, _svgBBox) {
                 parent.selectAll('svg.' + svgClass).remove();
@@ -114,7 +113,7 @@ exports.convertToTspans = function(_context, gd, _callback) {
                 })
                 .style({overflow: 'visible', 'pointer-events': 'none'});
 
-                var fill = _context.node().style.fill || 'black';
+                var fill = _context.style('fill') || 'black';
                 newSvg.select('g').attr({fill: fill, stroke: fill});
 
                 var newSvgW = getSize(newSvg, 'width'),
@@ -122,7 +121,8 @@ exports.convertToTspans = function(_context, gd, _callback) {
                     newX = +_context.attr('x') - newSvgW *
                         {start: 0, middle: 0.5, end: 1}[_context.attr('text-anchor') || 'start'],
                     // font baseline is about 1/4 fontSize below centerline
-                    textHeight = fontSize || getSize(_context, 'height'),
+                    textHeight = parseInt(_context.style('font-size'), 10) ||
+                        getSize(_context, 'height'),
                     dy = -textHeight / 4;
 
                 if(svgClass[0] === 'y') {
@@ -164,7 +164,7 @@ function cleanEscapesForTex(s) {
 }
 
 function texToSVG(_texString, _config, _callback) {
-    var randomID = 'math-output-' + Lib.randstr({}, 64);
+    var randomID = 'math-output-' + Lib.randstr([], 64);
     var tmpDiv = d3.select('body').append('div')
         .attr({id: randomID})
         .style({visibility: 'hidden', position: 'absolute'})
@@ -469,10 +469,7 @@ function buildSVGText(containerNode, str) {
                         var dummyAnchor = document.createElement('a');
                         dummyAnchor.href = href;
                         if(PROTOCOLS.indexOf(dummyAnchor.protocol) !== -1) {
-                            // Decode href to allow both already encoded and not encoded
-                            // URIs. Without decoding prior encoding, an already encoded
-                            // URI would be encoded twice producing a semantically different URI.
-                            nodeSpec.href = encodeURI(decodeURI(href));
+                            nodeSpec.href = encodeURI(href);
                             nodeSpec.target = getQuotedMatch(extra, TARGETMATCH) || '_blank';
                             nodeSpec.popup = getQuotedMatch(extra, POPUPMATCH);
                         }
@@ -601,30 +598,24 @@ exports.makeEditable = function(context, options) {
     }
 
     function appendEditable() {
-        var plotDiv = d3.select(gd);
-        var container = plotDiv.select('.svg-container');
-        var div = container.append('div');
-        var cStyle = context.node().style;
-        var fontSize = parseFloat(cStyle.fontSize || 12);
-
-        var initialText = options.text;
-        if(initialText === undefined) initialText = context.attr('data-unformatted');
-
+        var plotDiv = d3.select(gd),
+            container = plotDiv.select('.svg-container'),
+            div = container.append('div');
         div.classed('plugin-editable editable', true)
             .style({
                 position: 'absolute',
-                'font-family': cStyle.fontFamily || 'Arial',
-                'font-size': fontSize,
-                color: options.fill || cStyle.fill || 'black',
+                'font-family': context.style('font-family') || 'Arial',
+                'font-size': context.style('font-size') || 12,
+                color: options.fill || context.style('fill') || 'black',
                 opacity: 1,
                 'background-color': options.background || 'transparent',
                 outline: '#ffffff33 1px solid',
-                margin: [-fontSize / 8 + 1, 0, 0, -1].join('px ') + 'px',
+                margin: [-parseFloat(context.style('font-size')) / 8 + 1, 0, 0, -1].join('px ') + 'px',
                 padding: '0',
                 'box-sizing': 'border-box'
             })
             .attr({contenteditable: true})
-            .text(initialText)
+            .text(options.text || context.attr('data-unformatted'))
             .call(alignHTMLWith(context, container, options))
             .on('blur', function() {
                 gd._editing = false;

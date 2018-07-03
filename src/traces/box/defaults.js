@@ -14,73 +14,47 @@ var Color = require('../../components/color');
 
 var attributes = require('./attributes');
 
-function supplyDefaults(traceIn, traceOut, defaultColor, layout) {
+module.exports = function supplyDefaults(traceIn, traceOut, defaultColor, layout) {
     function coerce(attr, dflt) {
         return Lib.coerce(traceIn, traceOut, attributes, attr, dflt);
     }
 
-    handleSampleDefaults(traceIn, traceOut, coerce, layout);
-    if(traceOut.visible === false) return;
-
-    coerce('line.color', (traceIn.marker || {}).color || defaultColor);
-    coerce('line.width');
-    coerce('fillcolor', Color.addOpacity(traceOut.line.color, 0.5));
-
-    coerce('whiskerwidth');
-    coerce('boxmean');
-
-    var notched = coerce('notched', traceIn.notchwidth !== undefined);
-    if(notched) coerce('notchwidth');
-
-    handlePointsDefaults(traceIn, traceOut, coerce, {prefix: 'box'});
-}
-
-function handleSampleDefaults(traceIn, traceOut, coerce, layout) {
-    var y = coerce('y');
-    var x = coerce('x');
-    var hasX = x && x.length;
-
-    var defaultOrientation, len;
+    var y = coerce('y'),
+        x = coerce('x'),
+        defaultOrientation;
 
     if(y && y.length) {
         defaultOrientation = 'v';
-        if(hasX) {
-            len = Math.min(x.length, y.length);
-        }
-        else {
-            coerce('x0');
-            len = y.length;
-        }
-    } else if(hasX) {
+        if(!x) coerce('x0');
+    } else if(x && x.length) {
         defaultOrientation = 'h';
         coerce('y0');
-        len = x.length;
     } else {
         traceOut.visible = false;
         return;
     }
-    traceOut._length = len;
 
     var handleCalendarDefaults = Registry.getComponentMethod('calendars', 'handleTraceDefaults');
     handleCalendarDefaults(traceIn, traceOut, ['x', 'y'], layout);
 
     coerce('orientation', defaultOrientation);
-}
 
-function handlePointsDefaults(traceIn, traceOut, coerce, opts) {
-    var prefix = opts.prefix;
+    coerce('line.color', (traceIn.marker || {}).color || defaultColor);
+    coerce('line.width', 2);
+    coerce('fillcolor', Color.addOpacity(traceOut.line.color, 0.5));
 
-    var outlierColorDflt = Lib.coerce2(traceIn, traceOut, attributes, 'marker.outliercolor');
-    var lineoutliercolor = coerce('marker.line.outliercolor');
+    coerce('whiskerwidth');
+    coerce('boxmean');
 
-    var points = coerce(
-        prefix + 'points',
-        (outlierColorDflt || lineoutliercolor) ? 'suspectedoutliers' : undefined
-    );
+    var outlierColorDflt = Lib.coerce2(traceIn, traceOut, attributes, 'marker.outliercolor'),
+        lineoutliercolor = coerce('marker.line.outliercolor'),
+        boxpoints = outlierColorDflt ||
+                    lineoutliercolor ? coerce('boxpoints', 'suspectedoutliers') :
+                    coerce('boxpoints');
 
-    if(points) {
-        coerce('jitter', points === 'all' ? 0.3 : 0);
-        coerce('pointpos', points === 'all' ? -1.5 : 0);
+    if(boxpoints) {
+        coerce('jitter', boxpoints === 'all' ? 0.3 : 0);
+        coerce('pointpos', boxpoints === 'all' ? -1.5 : 0);
 
         coerce('marker.symbol');
         coerce('marker.opacity');
@@ -89,28 +63,9 @@ function handlePointsDefaults(traceIn, traceOut, coerce, opts) {
         coerce('marker.line.color');
         coerce('marker.line.width');
 
-        if(points === 'suspectedoutliers') {
+        if(boxpoints === 'suspectedoutliers') {
             coerce('marker.line.outliercolor', traceOut.marker.color);
             coerce('marker.line.outlierwidth');
         }
-
-        coerce('selected.marker.color');
-        coerce('unselected.marker.color');
-        coerce('selected.marker.size');
-        coerce('unselected.marker.size');
-
-        coerce('text');
-    } else {
-        delete traceOut.marker;
     }
-
-    coerce('hoveron');
-
-    Lib.coerceSelectionMarkerOpacity(traceOut, coerce);
-}
-
-module.exports = {
-    supplyDefaults: supplyDefaults,
-    handleSampleDefaults: handleSampleDefaults,
-    handlePointsDefaults: handlePointsDefaults
 };

@@ -28,8 +28,10 @@ describe('restyle', function() {
 
                 // First is tozero, second is tonext:
                 expect(d3.selectAll('g.trace.scatter .js-fill').size()).toEqual(2);
-                expect(fills[0]).toBeClassed(['js-fill', 'js-tozero']);
-                expect(fills[1]).toBeClassed(['js-fill', 'js-tonext']);
+                expect(fills[0].classList.contains('js-tozero')).toBe(true);
+                expect(fills[0].classList.contains('js-tonext')).toBe(false);
+                expect(fills[1].classList.contains('js-tozero')).toBe(false);
+                expect(fills[1].classList.contains('js-tonext')).toBe(true);
 
                 firstToZero = fills[0];
                 firstToNext = fills[1];
@@ -38,7 +40,8 @@ describe('restyle', function() {
             }).then(function() {
                 // Trace 1 hidden leaves only trace zero's tozero fill:
                 expect(d3.selectAll('g.trace.scatter .js-fill').size()).toEqual(1);
-                expect(fills[0]).toBeClassed(['js-fill', 'js-tozero']);
+                expect(fills[0].classList.contains('js-tozero')).toBe(true);
+                expect(fills[0].classList.contains('js-tonext')).toBe(false);
             }).then(function() {
                 return Plotly.restyle(gd, {visible: [true]}, [1]);
             }).then(function() {
@@ -47,8 +50,10 @@ describe('restyle', function() {
 
                 // First is tozero, second is tonext:
                 expect(d3.selectAll('g.trace.scatter .js-fill').size()).toEqual(2);
-                expect(fills[0]).toBeClassed(['js-fill', 'js-tozero']);
-                expect(fills[1]).toBeClassed(['js-fill', 'js-tonext']);
+                expect(fills[0].classList.contains('js-tozero')).toBe(true);
+                expect(fills[0].classList.contains('js-tonext')).toBe(false);
+                expect(fills[1].classList.contains('js-tozero')).toBe(false);
+                expect(fills[1].classList.contains('js-tonext')).toBe(true);
 
                 secondToZero = fills[0];
                 secondToNext = fills[1];
@@ -153,58 +158,6 @@ describe('restyle', function() {
             .catch(failTest)
             .then(done);
 
-        });
-
-        it('can legend-hide the second and only scatter trace', function(done) {
-            Plotly.plot(gd, [
-                {y: [1, 2, 3], type: 'bar'},
-                {y: [1, 2, 3], xaxis: 'x2', yaxis: 'y2', type: 'scatter'}
-            ], {
-                xaxis: {domain: [0, 0.4]},
-                xaxis2: {domain: [0.6, 1]},
-                yaxis2: {anchor: 'x2'},
-                width: 600,
-                height: 400
-            })
-            .then(function() {
-                expect(d3.select('.scatter').size()).toBe(1);
-                return Plotly.restyle(gd, {visible: 'legendonly'}, 1);
-            })
-            .then(function() {
-                expect(d3.select('.scatter').size()).toBe(0);
-                return Plotly.restyle(gd, {visible: true}, 1);
-            })
-            .then(function() {
-                expect(d3.select('.scatter').size()).toBe(1);
-            })
-            .catch(failTest)
-            .then(done);
-        });
-
-        it('@gl can legend-hide the second and only scattergl trace', function(done) {
-            Plotly.plot(gd, [
-                {y: [1, 2, 3], type: 'bar'},
-                {y: [1, 2, 3], xaxis: 'x2', yaxis: 'y2', type: 'scattergl'}
-            ], {
-                xaxis: {domain: [0, 0.4]},
-                xaxis2: {domain: [0.6, 1]},
-                yaxis2: {anchor: 'x2'},
-                width: 600,
-                height: 400
-            })
-            .then(function() {
-                expect(!!gd._fullLayout._plots.x2y2._scene).toBe(true);
-                return Plotly.restyle(gd, {visible: 'legendonly'}, 1);
-            })
-            .then(function() {
-                expect(!!gd._fullLayout._plots.x2y2._scene).toBe(false);
-                return Plotly.restyle(gd, {visible: true}, 1);
-            })
-            .then(function() {
-                expect(!!gd._fullLayout._plots.x2y2._scene).toBe(true);
-            })
-            .catch(failTest)
-            .then(done);
         });
     });
 });
@@ -313,74 +266,8 @@ describe('relayout', function() {
             .then(done);
         });
 
-        it('should autorange correctly with margin pushers', function(done) {
-            // lock down https://github.com/plotly/plotly.js/issues/2428
-            var expectedXRange = [-0.3068, 1.3068];
-            var expectedYRange = [0.5184, 2.4816];
-            var foundXRange, foundYRange;
-            Plotly.newPlot(gd, [{
-                // really long name, so legend pushes margins and decreases xaxis._length
-                name: 'loooooooooooongloooooooooooong',
-                y: [1, 2],
-                // really big markers, so autorange depends on length
-                // and with markers x range is padded (and 5% padding depends on length)
-                marker: {size: 100}
-            }], {
-                showlegend: true,
-                width: 800,
-                height: 500
-            })
-            .then(function() {
-                foundXRange = gd.layout.xaxis.range;
-                foundYRange = gd.layout.yaxis.range;
-                // less stringent test at first - for some reason I get a slightly different
-                // legend size even in my regular browser from when I run the tests locally
-                expect(foundXRange).toBeCloseToArray(expectedXRange, 1.5);
-                expect(foundYRange).toBeCloseToArray(expectedYRange, 1.5);
-
-                return Plotly.relayout(gd, {'xaxis.autorange': true, 'yaxis.autorange': true});
-            })
-            .then(function() {
-                // the most important thing is that the ranges don't change when you re-autorange
-                expect(gd.layout.xaxis.range).toBeCloseToArray(foundXRange, 5);
-                expect(gd.layout.yaxis.range).toBeCloseToArray(foundYRange, 5);
-            })
-            .catch(failTest)
-            .then(done);
-        });
     });
 
-    describe('axis line visibility', function() {
-        var gd;
-
-        beforeEach(function() {
-            gd = createGraphDiv();
-        });
-
-        afterEach(destroyGraphDiv);
-
-        it('can show and hide axis lines', function(done) {
-            Plotly.newPlot(gd, [{y: [1, 2]}], {width: 400, height: 400})
-            .then(function() {
-                expect(gd.querySelector('.xlines-above').attributes.d.value).toBe('M0,0');
-                expect(gd.querySelector('.ylines-above').attributes.d.value).toBe('M0,0');
-
-                return Plotly.relayout(gd, {'xaxis.showline': true, 'yaxis.showline': true});
-            })
-            .then(function() {
-                expect(gd.querySelector('.xlines-above').attributes.d.value).not.toBe('M0,0');
-                expect(gd.querySelector('.ylines-above').attributes.d.value).not.toBe('M0,0');
-
-                return Plotly.relayout(gd, {'xaxis.showline': false, 'yaxis.showline': false});
-            })
-            .then(function() {
-                expect(gd.querySelector('.xlines-above').attributes.d.value).toBe('M0,0');
-                expect(gd.querySelector('.ylines-above').attributes.d.value).toBe('M0,0');
-            })
-            .catch(failTest)
-            .then(done);
-        });
-    });
 });
 
 describe('subplot creation / deletion:', function() {
@@ -394,15 +281,13 @@ describe('subplot creation / deletion:', function() {
 
     it('should clear orphan subplot when adding traces to blank graph', function(done) {
 
-        function assertOrphanSubplot(len) {
+        function assertCartesianSubplot(len) {
             expect(d3.select('.subplot.xy').size()).toEqual(len);
+            expect(d3.select('.subplot.x2y2').size()).toEqual(len);
+            expect(d3.select('.x2title').size()).toEqual(len);
+            expect(d3.select('.x2title').size()).toEqual(len);
             expect(d3.select('.ytitle').size()).toEqual(len);
             expect(d3.select('.ytitle').size()).toEqual(len);
-
-            // we only make one orphan subplot now
-            expect(d3.select('.subplot.x2y2').size()).toEqual(0);
-            expect(d3.select('.x2title').size()).toEqual(0);
-            expect(d3.select('.x2title').size()).toEqual(0);
         }
 
         Plotly.plot(gd, [], {
@@ -412,7 +297,7 @@ describe('subplot creation / deletion:', function() {
             yaxis2: { title: 'Y2', anchor: 'x2' }
         })
         .then(function() {
-            assertOrphanSubplot(1);
+            assertCartesianSubplot(1);
 
             return Plotly.addTraces(gd, [{
                 type: 'scattergeo',
@@ -421,96 +306,31 @@ describe('subplot creation / deletion:', function() {
             }]);
         })
         .then(function() {
-            assertOrphanSubplot(0);
-        })
-        .catch(failTest)
-        .then(done);
-    });
-
-    it('should remove unused axes when deleting traces', function(done) {
-        Plotly.newPlot(gd,
-            [{y: [1, 2, 3]}, {y: [10, 30, 20], yaxis: 'y2'}],
-            {yaxis2: {side: 'right', overlaying: 'y', title: 'Hi!'}}
-        )
-        .then(function() {
-            expect(gd.querySelectorAll('.xy2,.xy2-x,.xy2-y').length).not.toBe(0);
-            expect(gd.querySelectorAll('.y2title').length).toBe(1);
-            expect(gd._fullLayout._subplots.cartesian).toEqual(['xy', 'xy2']);
-            expect(gd._fullLayout._subplots.yaxis).toEqual(['y', 'y2']);
-
-            return Plotly.deleteTraces(gd, [1]);
-        })
-        .then(function() {
-            expect(gd.querySelectorAll('.xy2,.xy2-x,.xy2-y').length).toBe(0);
-            expect(gd.querySelectorAll('.y2title').length).toBe(0);
-            expect(gd._fullLayout._subplots.cartesian).toEqual(['xy']);
-            expect(gd._fullLayout._subplots.yaxis).toEqual(['y']);
-        })
-        .catch(failTest)
-        .then(done);
-    });
-
-    function checkBGLayers(behindCount, x2y2Count, subplots) {
-        expect(gd.querySelectorAll('.bglayer rect.bg').length).toBe(behindCount);
-        expect(gd.querySelectorAll('.subplot.x2y2 rect.bg').length).toBe(x2y2Count);
-
-        // xy is the first subplot, so it never gets put in front of others
-        expect(gd.querySelectorAll('.subplot.xy rect.bg').length).toBe(0);
-
-        // xy3 is an overlay, so never gets its own bg
-        expect(gd.querySelectorAll('.subplot.xy3 rect.bg').length).toBe(0);
-
-        // verify that these are *all* the subplots and backgrounds we have
-        expect(gd.querySelectorAll('.subplot').length).toBe(subplots.length);
-        subplots.forEach(function(subplot) {
-            expect(gd.querySelectorAll('.subplot.' + subplot).length).toBe(1);
-        });
-        expect(gd.querySelectorAll('.bg').length).toBe(behindCount + x2y2Count);
-    }
-
-    it('makes new backgrounds when switching between overlaying and separate subplots', function(done) {
-        Plotly.newPlot(gd, [
-            {x: [1], y: [2]},
-            {x: [3], y: [4], xaxis: 'x2', yaxis: 'y2'}
-        ], {
-            xaxis2: {overlaying: 'x'},
-            yaxis2: {overlaying: 'y'},
-            plot_bgcolor: 'red',
-            showlegend: false
-        })
-        .then(function() {
-            checkBGLayers(1, 0, ['xy', 'x2y2']);
-
-            return Plotly.relayout(gd, {
-                'xaxis.domain': [0, 0.4],
-                'xaxis2.domain': [0.6, 1],
-                'xaxis2.overlaying': null
-            });
-        })
-        .then(function() {
-            checkBGLayers(2, 0, ['xy', 'x2y2']);
-
-            return Plotly.relayout(gd, {
-                'xaxis2.overlaying': 'x'
-            });
-        })
-        .then(function() {
-            checkBGLayers(1, 0, ['xy', 'x2y2']);
-
-            return Plotly.relayout(gd, {
-                'xaxis.domain': [0, 0.6],
-                'xaxis2.domain': [0.4, 1],
-                'xaxis2.overlaying': null
-            });
-        })
-        .then(function() {
-            checkBGLayers(1, 1, ['xy', 'x2y2']);
+            assertCartesianSubplot(0);
         })
         .catch(failTest)
         .then(done);
     });
 
     it('puts plot backgrounds behind everything except if they overlap', function(done) {
+        function checkBGLayers(behindCount, x2y2Count) {
+            expect(gd.querySelectorAll('.bglayer rect.bg').length).toBe(behindCount);
+            expect(gd.querySelectorAll('.subplot.x2y2 rect.bg').length).toBe(x2y2Count);
+
+            // xy is the first subplot, so it never gets put in front of others
+            expect(gd.querySelectorAll('.subplot.xy rect.bg').length).toBe(0);
+
+            // xy3 is an overlay, so never gets its own bg
+            expect(gd.querySelectorAll('.subplot.xy3 rect.bg').length).toBe(0);
+
+            // verify that these are *all* the subplots and backgrounds we have
+            expect(gd.querySelectorAll('.subplot').length).toBe(3);
+            ['xy', 'x2y2', 'xy3'].forEach(function(subplot) {
+                expect(gd.querySelectorAll('.subplot.' + subplot).length).toBe(1);
+            });
+            expect(gd.querySelectorAll('.bg').length).toBe(behindCount + x2y2Count);
+        }
+
         Plotly.plot(gd, [
             {y: [1, 2, 3]},
             {y: [2, 3, 1], xaxis: 'x2', yaxis: 'y2'},
@@ -526,19 +346,19 @@ describe('subplot creation / deletion:', function() {
         })
         .then(function() {
             // touching but not overlapping: all backgrounds are in back
-            checkBGLayers(2, 0, ['xy', 'x2y2', 'xy3']);
+            checkBGLayers(2, 0);
 
             // now add a slight overlap: that's enough to put x2y2 in front
             return Plotly.relayout(gd, {'xaxis2.domain': [0.49, 1]});
         })
         .then(function() {
-            checkBGLayers(1, 1, ['xy', 'x2y2', 'xy3']);
+            checkBGLayers(1, 1);
 
             // x ranges overlap, but now y ranges are disjoint
             return Plotly.relayout(gd, {'xaxis2.domain': [0, 1], 'yaxis.domain': [0, 0.5]});
         })
         .then(function() {
-            checkBGLayers(2, 0, ['xy', 'x2y2', 'xy3']);
+            checkBGLayers(2, 0);
 
             // regular inset
             return Plotly.relayout(gd, {
@@ -549,7 +369,7 @@ describe('subplot creation / deletion:', function() {
             });
         })
         .then(function() {
-            checkBGLayers(1, 1, ['xy', 'x2y2', 'xy3']);
+            checkBGLayers(1, 1);
         })
         .catch(failTest)
         .then(done);
@@ -654,48 +474,6 @@ describe('subplot creation / deletion:', function() {
                 [false, 0],
                 [false, 0]
             );
-        })
-        .catch(failTest)
-        .then(done);
-    });
-
-    it('clear axis ticks, labels and title when relayout an axis to `*visible:false*', function(done) {
-        function _assert(xaxis, yaxis) {
-            var g = d3.select('.subplot.xy');
-            var info = d3.select('.infolayer');
-
-            expect(g.selectAll('.xtick').size()).toBe(xaxis[0], 'x tick cnt');
-            expect(g.selectAll('.gridlayer .xgrid').size()).toBe(xaxis[1], 'x gridline cnt');
-            expect(info.selectAll('.g-xtitle').size()).toBe(xaxis[2], 'x title cnt');
-
-            expect(g.selectAll('.ytick').size()).toBe(yaxis[0], 'y tick cnt');
-            expect(g.selectAll('.gridlayer .ygrid').size()).toBe(yaxis[1], 'y gridline cnt');
-            expect(info.selectAll('.g-ytitle').size()).toBe(yaxis[2], 'y title cnt');
-        }
-
-        Plotly.plot(gd, [{
-            y: [1, 2, 1]
-        }], {
-            xaxis: {title: 'X'},
-            yaxis: {title: 'Y'}
-        })
-        .then(function() {
-            _assert([5, 4, 1], [6, 6, 1]);
-            return Plotly.relayout(gd, 'xaxis.visible', false);
-        })
-        .then(function() {
-            _assert([0, 0, 0], [6, 6, 1]);
-            return Plotly.relayout(gd, 'yaxis.visible', false);
-        })
-        .then(function() {
-            _assert([0, 0, 0], [0, 0, 0]);
-            return Plotly.relayout(gd, {
-                'xaxis.visible': true,
-                'yaxis.visible': true
-            });
-        })
-        .then(function() {
-            _assert([5, 4, 1], [6, 6, 1]);
         })
         .catch(failTest)
         .then(done);

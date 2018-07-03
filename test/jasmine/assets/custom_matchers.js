@@ -1,25 +1,10 @@
-/*
- * custom_matchers - to be included in karma.conf.js, so it can
- * add these matchers to jasmine globally and all suites have access.
- *
- * Also adds `.negateIf` which is not a matcher but a conditional `.not`:
- *
- *     expect(x).negateIf(condition).toBe(0);
- *
- * is equivalent to:
- *
- *     if(condition) expect(x).toBe(0);
- *     else expect(x).not.toBe(0);
- */
-
 'use strict';
 
 var isNumeric = require('fast-isnumeric');
-var isPlainObject = require('../../../src/lib/is_plain_object');
-var extendDeep = require('../../../src/lib/extend').extendDeep;
+var Lib = require('../../../src/lib');
 var deepEqual = require('deep-equal');
 
-var matchers = {
+module.exports = {
     // toEqual except with sparse arrays populated. This arises because:
     //
     //   var x = new Array(2)
@@ -36,7 +21,7 @@ var matchers = {
                 for(i = 0; i < x.length; i++) {
                     x[i] = x[i];
                 }
-            } else if(isPlainObject(x)) {
+            } else if(Lib.isPlainObject(x)) {
                 var keys = Object.keys(x);
                 for(i = 0; i < keys.length; i++) {
                     populateUndefinedArrayEls(x[keys[i]]);
@@ -47,8 +32,8 @@ var matchers = {
 
         return {
             compare: function(actual, expected, msgExtra) {
-                var actualExpanded = populateUndefinedArrayEls(extendDeep({}, actual));
-                var expectedExpanded = populateUndefinedArrayEls(extendDeep({}, expected));
+                var actualExpanded = populateUndefinedArrayEls(Lib.extendDeep({}, actual));
+                var expectedExpanded = populateUndefinedArrayEls(Lib.extendDeep({}, expected));
 
                 var passed = deepEqual(actualExpanded, expectedExpanded);
 
@@ -127,7 +112,7 @@ var matchers = {
                     'to be close to',
                     arrayToStr(expected.map(arrayToStr)),
                     msgExtra
-                ].join('\n');
+                ].join(' ');
 
                 return {
                     pass: passed,
@@ -146,31 +131,6 @@ var matchers = {
                     'Expected', actual,
                     'to be close to', expected,
                     'within', tolerance,
-                    msgExtra
-                ].join(' ');
-
-                return {
-                    pass: passed,
-                    message: message
-                };
-            }
-        };
-    },
-
-    toBeClassed: function() {
-        return {
-            compare: function(node, _expected, msgExtra) {
-                var actual = node.classList;
-                var expected = Array.isArray(_expected) ? _expected : [_expected];
-
-                var passed = (
-                    actual.length === expected.length &&
-                    expected.every(function(e) { return actual.contains(e); })
-                );
-
-                var message = [
-                    'Expected classList', '[' + actual + ']',
-                    'to have classes', expected,
                     msgExtra
                 ].join(' ');
 
@@ -203,14 +163,5 @@ function coercePosition(precision) {
 }
 
 function arrayToStr(array) {
-    return '[' + array.join(', ') + ']';
+    return '[ ' + array.join(', ') + ' ]';
 }
-
-beforeAll(function() {
-    jasmine.addMatchers(matchers);
-
-    jasmine.Expectation.prototype.negateIf = function(negate) {
-        if(negate) return this.not;
-        return this;
-    };
-});

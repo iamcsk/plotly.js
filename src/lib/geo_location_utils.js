@@ -23,8 +23,6 @@ var locationmodeToIdFinder = {
 };
 
 exports.locationToFeature = function(locationmode, location, features) {
-    if(!location || typeof location !== 'string') return false;
-
     var locationId = getLocationId(locationmode, location);
 
     if(locationId) {
@@ -34,7 +32,7 @@ exports.locationToFeature = function(locationmode, location, features) {
             if(feature.id === locationId) return feature;
         }
 
-        Lib.log([
+        Lib.warn([
             'Location with id', locationId,
             'does not have a matching topojson feature at this resolution.'
         ].join(' '));
@@ -56,7 +54,7 @@ function countryNameToISO3(countryName) {
         if(regex.test(countryName.trim().toLowerCase())) return iso3;
     }
 
-    Lib.log('Unrecognized country name: ' + countryName + '.');
+    Lib.warn('Unrecognized country name: ' + countryName + '.');
 
     return false;
 }

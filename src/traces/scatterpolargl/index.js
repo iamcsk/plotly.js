@@ -8,7 +8,7 @@
 
 'use strict';
 
-var cluster = require('point-cluster');
+var kdtree = require('kdgrass');
 var isNumeric = require('fast-isnumeric');
 
 var ScatterGl = require('../scattergl');
@@ -16,8 +16,6 @@ var calcColorscales = require('../scatter/colorscale_calc');
 var Axes = require('../../plots/cartesian/axes');
 var makeHoverPointText = require('../scatterpolar/hover').makeHoverPointText;
 var subTypes = require('../scatter/subtypes');
-
-var TOO_MANY_POINTS = require('../scattergl/constants').TOO_MANY_POINTS;
 
 function calc(container, trace) {
     var layout = container._fullLayout;
@@ -108,13 +106,6 @@ function plot(container, subplot, cdata) {
         if(options.line && !scene.line2d) scene.line2d = true;
         if((options.errorX || options.errorY) && !scene.error2d) scene.error2d = true;
 
-        stash.tree = cluster(positions);
-
-        // FIXME: see scattergl.js#109
-        if(options.marker && count >= TOO_MANY_POINTS) {
-            options.marker.cluster = stash.tree;
-        }
-
         // bring positions to selected/unselected options
         if(subTypes.hasMarkers(trace)) {
             options.selected.positions = options.unselected.positions = options.marker.positions;
@@ -131,7 +122,7 @@ function plot(container, subplot, cdata) {
         scene.count = cdata.length;
 
         // stash scene ref
-        stash._scene = scene;
+        stash.scene = scene;
         stash.index = traceIndex;
         stash.x = x;
         stash.y = y;
@@ -141,6 +132,7 @@ function plot(container, subplot, cdata) {
         stash.theta = thetaArray;
         stash.positions = positions;
         stash.count = count;
+        stash.tree = kdtree(positions, 512);
     });
 
     return ScatterGl.plot(container, subplot, cdata);
@@ -184,11 +176,10 @@ module.exports = {
     moduleType: 'trace',
     name: 'scatterpolargl',
     basePlotModule: require('../../plots/polar'),
-    categories: ['gl', 'regl', 'polar', 'symbols', 'showLegend', 'scatter-like'],
+    categories: ['gl', 'regl', 'polar', 'symbols', 'markerColorscale', 'showLegend', 'scatter-like'],
 
     attributes: require('./attributes'),
     supplyDefaults: require('./defaults'),
-    colorbar: require('../scatter/marker_colorbar'),
 
     calc: calc,
     plot: plot,

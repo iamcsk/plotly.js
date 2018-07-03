@@ -19,8 +19,7 @@ module.exports = function(type, x, y, opts) {
         touches: [touchObj],
         targetTouches: [],
         changedTouches: [touchObj],
-        bubbles: true,
-        cancelable: true
+        bubbles: true
     };
 
     if(opts && opts.altKey) {

@@ -59,7 +59,7 @@ function handleGl3dDefaults(sceneLayoutIn, sceneLayoutOut, coerce, opts) {
     var bgcolor = coerce('bgcolor'),
         bgColorCombined = Color.combine(bgcolor, opts.paper_bgcolor);
 
-    var cameraKeys = ['up', 'center', 'eye'];
+    var cameraKeys = Object.keys(layoutAttributes.camera);
 
     for(var j = 0; j < cameraKeys.length; j++) {
         coerce('camera.' + cameraKeys[j] + '.x');
@@ -89,12 +89,6 @@ function handleGl3dDefaults(sceneLayoutIn, sceneLayoutOut, coerce, opts) {
         sceneLayoutIn.aspectratio = sceneLayoutOut.aspectratio = {x: 1, y: 1, z: 1};
 
         if(aspectMode === 'manual') sceneLayoutOut.aspectmode = 'auto';
-
-        /*
-         * kind of like autorange - we need the calculated aspectmode back in
-         * the input layout or relayout can cause problems later
-         */
-        sceneLayoutIn.aspectmode = sceneLayoutOut.aspectmode;
     }
 
     supplyGl3dAxisLayoutDefaults(sceneLayoutIn, sceneLayoutOut, {
@@ -102,8 +96,7 @@ function handleGl3dDefaults(sceneLayoutIn, sceneLayoutOut, coerce, opts) {
         scene: opts.id,
         data: opts.fullData,
         bgColor: bgColorCombined,
-        calendar: opts.calendar,
-        fullLayout: opts.fullLayout
+        calendar: opts.calendar
     });
 
     Registry.getComponentMethod('annotations3d', 'handleDefaults')(

@@ -41,9 +41,6 @@ module.exports = {
     pathToPlotlyDistMin: path.join(pathToDist, 'plotly.min.js'),
     pathToPlotlyDistWithMeta: path.join(pathToDist, 'plotly-with-meta.js'),
 
-    pathToSchema: path.join(pathToDist, 'plot-schema.json'),
-    pathToTranslationKeys: path.join(pathToDist, 'translation-keys.txt'),
-
     partialBundleNames: partialBundleNames,
     partialBundlePaths: partialBundlePaths,
 
@@ -85,15 +82,16 @@ module.exports = {
     testContainerHome: '/var/www/streambed/image_server/plotly.js',
 
     uglifyOptions: {
+        fromString: true,
         mangle: true,
         compress: {
-            warnings: false
+            warnings: false,
+            screw_ie8: true
         },
         output: {
             beautify: false,
             ascii_only: true
-        },
-        sourceMap: false
+        }
     },
 
     licenseDist: [

@@ -6,11 +6,12 @@
 * LICENSE file in the root directory of this source tree.
 */
 
+
 'use strict';
 
-var isArrayOrTypedArray = require('../../lib').isArrayOrTypedArray;
 var hasColorscale = require('../../components/colorscale/has_colorscale');
 var colorscaleDefaults = require('../../components/colorscale/defaults');
+
 
 module.exports = function lineDefaults(traceIn, traceOut, defaultColor, layout, coerce, opts) {
     var markerColor = (traceIn.marker || {}).color;
@@ -21,7 +22,7 @@ module.exports = function lineDefaults(traceIn, traceOut, defaultColor, layout, 
         colorscaleDefaults(traceIn, traceOut, layout, coerce, {prefix: 'line.', cLetter: 'c'});
     }
     else {
-        var lineColorDflt = (isArrayOrTypedArray(markerColor) ? false : markerColor) || defaultColor;
+        var lineColorDflt = (Array.isArray(markerColor) ? false : markerColor) || defaultColor;
         coerce('line.color', lineColorDflt);
     }
 

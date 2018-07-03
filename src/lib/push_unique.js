@@ -11,8 +11,6 @@
 /**
  * Push array with unique items
  *
- * Ignores falsy items, except 0 so we can use it to construct arrays of indices.
- *
  * @param {array} array
  *  array to be filled
  * @param {any} item
@@ -32,7 +30,7 @@ module.exports = function pushUnique(array, item) {
         }
         array.push(item);
     }
-    else if((item || item === 0) && array.indexOf(item) === -1) array.push(item);
+    else if(item && array.indexOf(item) === -1) array.push(item);
 
     return array;
 };

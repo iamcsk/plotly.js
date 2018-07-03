@@ -121,7 +121,7 @@
       "decreasing": {
         "line": {
           "color": "rgb(128, 128, 128)",
-          "dash": "dot"
+          "dash": "dash"
         }
       },
       "line": {
@@ -268,7 +268,7 @@
       "calendar": "islamic",
       "title": "Islamic dates"
     },
-    "showlegend": true,
+    "showlegend": false,
     "height": 450,
     "width": 1100,
     "autosize": true

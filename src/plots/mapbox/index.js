@@ -6,37 +6,34 @@
 * LICENSE file in the root directory of this source tree.
 */
 
+
 'use strict';
 
 var mapboxgl = require('mapbox-gl');
 
 var Lib = require('../../lib');
-var getSubplotCalcData = require('../../plots/get_data').getSubplotCalcData;
+var Plots = require('../plots');
 var xmlnsNamespaces = require('../../constants/xmlns_namespaces');
 
 var createMapbox = require('./mapbox');
 var constants = require('./constants');
 
-var MAPBOX = 'mapbox';
 
-for(var k in constants.styleRules) {
-    Lib.addStyleRule('.mapboxgl-' + k, constants.styleRules[k]);
-}
-
-exports.name = MAPBOX;
+exports.name = 'mapbox';
 
 exports.attr = 'subplot';
 
-exports.idRoot = MAPBOX;
+exports.idRoot = 'mapbox';
 
-exports.idRegex = exports.attrRegex = Lib.counterRegex(MAPBOX);
+exports.idRegex = /^mapbox([2-9]|[1-9][0-9]+)?$/;
+
+exports.attrRegex = /^mapbox([2-9]|[1-9][0-9]+)?$/;
 
 exports.attributes = {
     subplot: {
         valType: 'subplotid',
         role: 'info',
         dflt: 'mapbox',
-        editType: 'calc',
         description: [
             'Sets a reference between this trace\'s data coordinates and',
             'a mapbox subplot.',
@@ -51,22 +48,21 @@ exports.layoutAttributes = require('./layout_attributes');
 exports.supplyLayoutDefaults = require('./layout_defaults');
 
 exports.plot = function plotMapbox(gd) {
-    var fullLayout = gd._fullLayout;
-    var calcData = gd.calcdata;
-    var mapboxIds = fullLayout._subplots[MAPBOX];
-
-    if(mapboxgl.version !== constants.requiredVersion) {
-        throw new Error(constants.wrongVersionErrorMsg);
-    }
+    var fullLayout = gd._fullLayout,
+        calcData = gd.calcdata,
+        mapboxIds = Plots.getSubplotIds(fullLayout, 'mapbox');
 
     var accessToken = findAccessToken(gd, mapboxIds);
     mapboxgl.accessToken = accessToken;
 
     for(var i = 0; i < mapboxIds.length; i++) {
         var id = mapboxIds[i],
-            subplotCalcData = getSubplotCalcData(calcData, MAPBOX, id),
+            subplotCalcData = Plots.getSubplotCalcData(calcData, 'mapbox', id),
             opts = fullLayout[id],
             mapbox = opts._subplot;
+
+        // copy access token to fullLayout (to handle the context case)
+        opts.accesstoken = accessToken;
 
         if(!mapbox) {
             mapbox = createMapbox({
@@ -94,7 +90,7 @@ exports.plot = function plotMapbox(gd) {
 };
 
 exports.clean = function(newFullData, newFullLayout, oldFullData, oldFullLayout) {
-    var oldMapboxKeys = oldFullLayout._subplots[MAPBOX] || [];
+    var oldMapboxKeys = Plots.getSubplotIds(oldFullLayout, 'mapbox');
 
     for(var i = 0; i < oldMapboxKeys.length; i++) {
         var oldMapboxKey = oldMapboxKeys[i];
@@ -106,9 +102,9 @@ exports.clean = function(newFullData, newFullLayout, oldFullData, oldFullLayout)
 };
 
 exports.toSVG = function(gd) {
-    var fullLayout = gd._fullLayout;
-    var subplotIds = fullLayout._subplots[MAPBOX];
-    var size = fullLayout._size;
+    var fullLayout = gd._fullLayout,
+        subplotIds = Plots.getSubplotIds(fullLayout, 'mapbox'),
+        size = fullLayout._size;
 
     for(var i = 0; i < subplotIds.length; i++) {
         var opts = fullLayout[subplotIds[i]],
@@ -139,24 +135,22 @@ function findAccessToken(gd, mapboxIds) {
     // special case for Mapbox Atlas users
     if(context.mapboxAccessToken === '') return '';
 
-    // Take the first token we find in a mapbox subplot.
-    // These default to the context value but may be overridden.
+    // first look for access token in context
+    var accessToken = context.mapboxAccessToken;
+
+    // allow mapbox layout options to override it
     for(var i = 0; i < mapboxIds.length; i++) {
         var opts = fullLayout[mapboxIds[i]];
 
         if(opts.accesstoken) {
-            return opts.accesstoken;
+            accessToken = opts.accesstoken;
+            break;
         }
     }
 
-    throw new Error(constants.noAccessTokenErrorMsg);
-}
-
-exports.updateFx = function(fullLayout) {
-    var subplotIds = fullLayout._subplots[MAPBOX];
-
-    for(var i = 0; i < subplotIds.length; i++) {
-        var subplotObj = fullLayout[subplotIds[i]]._subplot;
-        subplotObj.updateFx(fullLayout);
+    if(!accessToken) {
+        throw new Error(constants.noAccessTokenErrorMsg);
     }
-};
+
+    return accessToken;
+}

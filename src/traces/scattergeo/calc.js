@@ -14,13 +14,10 @@ var BADNUM = require('../../constants/numerical').BADNUM;
 
 var calcMarkerColorscale = require('../scatter/colorscale_calc');
 var arraysToCalcdata = require('../scatter/arrays_to_calcdata');
-var calcSelection = require('../scatter/calc_selection');
-
-var _ = require('../../lib')._;
 
 module.exports = function calc(gd, trace) {
     var hasLocationData = Array.isArray(trace.locations);
-    var len = hasLocationData ? trace.locations.length : trace._length;
+    var len = hasLocationData ? trace.locations.length : trace.lon.length;
     var calcTrace = new Array(len);
 
     for(var i = 0; i < len; i++) {
@@ -40,16 +37,6 @@ module.exports = function calc(gd, trace) {
 
     arraysToCalcdata(calcTrace, trace);
     calcMarkerColorscale(trace);
-    calcSelection(calcTrace, trace);
-
-    if(len) {
-        calcTrace[0].t = {
-            labels: {
-                lat: _(gd, 'lat:') + ' ',
-                lon: _(gd, 'lon:') + ' '
-            }
-        };
-    }
 
     return calcTrace;
 };

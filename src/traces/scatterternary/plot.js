@@ -11,7 +11,8 @@
 
 var scatterPlot = require('../scatter/plot');
 
-module.exports = function plot(gd, ternary, moduleCalcData) {
+
+module.exports = function plot(ternary, moduleCalcData) {
     var plotContainer = ternary.plotContainer;
 
     // remove all nodes inside the scatter layer
@@ -25,7 +26,10 @@ module.exports = function plot(gd, ternary, moduleCalcData) {
         layerClipId: ternary._hasClipOnAxisFalse ? ternary.clipIdRelative : null
     };
 
-    var scatterLayer = ternary.layers.frontplot.select('g.scatterlayer');
+    // add ref to ternary subplot object in fullData traces
+    for(var i = 0; i < moduleCalcData.length; i++) {
+        moduleCalcData[i][0].trace._ternary = ternary;
+    }
 
-    scatterPlot(gd, plotinfo, moduleCalcData, scatterLayer);
+    scatterPlot(ternary.graphDiv, plotinfo, moduleCalcData);
 };

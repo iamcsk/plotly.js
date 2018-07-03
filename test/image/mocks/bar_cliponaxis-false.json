@@ -36,18 +36,6 @@
       "cliponaxis": true,
       "textfont": {"size": [20]},
 	  "marker": {"opacity": 0.3}
-    },
-    {
-      "type": "bar",
-      "name": "should see text",
-      "x": ["banana"],
-      "y": [1],
-      "text": ["banana"],
-      "textposition": "outside",
-      "cliponaxis": false,
-      "textfont": {"size": [20]},
-      "xaxis": "x3",
-      "yaxis": "y3"
     }
   ],
   "layout": {
@@ -63,7 +51,7 @@
       "showticklabels": false,
       "mirror": true,
       "layer": "below traces",
-	  "domain": [0, 0.38]
+	  "domain": [0, 0.48]
     },
     "xaxis2": {
       "anchor": "y2",
@@ -71,15 +59,7 @@
       "showticklabels": false,
       "mirror": true,
       "layer": "below traces",
-	  "domain": [0.42, 0.80]
-    },
-    "xaxis3": {
-      "anchor": "y3",
-      "showline": true,
-      "showticklabels": false,
-      "mirror": true,
-      "layer": "below traces",
-      "domain": [0.84, 1]
+	  "domain": [0.52, 1]
     },
     "yaxis": {
       "showline": true,
@@ -94,14 +74,7 @@
       "layer": "below traces",
       "range": [0, 2]
     },
-    "yaxis3": {
-      "anchor": "x3",
-      "showline": true,
-      "mirror": true,
-      "layer": "below traces",
-      "range": [2, 0]
-    },
-    "width": 800,
+    "width": 700,
     "height": 400,
 	"margin": {"t": 40},
 	"dragmode": "pan"

@@ -10,9 +10,10 @@
 'use strict';
 
 var isNumeric = require('fast-isnumeric');
-var Lib = require('../../lib');
 
 var Registry = require('../../registry');
+var hasColumns = require('./has_columns');
+
 
 module.exports = function handleXYZDefaults(traceIn, traceOut, coerce, layout, xName, yName) {
     var z = coerce('z');
@@ -22,14 +23,12 @@ module.exports = function handleXYZDefaults(traceIn, traceOut, coerce, layout, x
 
     if(z === undefined || !z.length) return 0;
 
-    if(Lib.isArray1D(traceIn.z)) {
+    if(hasColumns(traceIn)) {
         x = coerce(xName);
         y = coerce(yName);
 
         // column z must be accompanied by xName and yName arrays
-        if(!(x && x.length && y && y.length)) return 0;
-
-        traceOut._length = Math.min(x.length, y.length, z.length);
+        if(!x || !y) return 0;
     }
     else {
         x = coordDefaults(xName, coerce);
@@ -39,14 +38,12 @@ module.exports = function handleXYZDefaults(traceIn, traceOut, coerce, layout, x
         if(!isValidZ(z)) return 0;
 
         coerce('transpose');
-
-        traceOut._length = null;
     }
 
     var handleCalendarDefaults = Registry.getComponentMethod('calendars', 'handleTraceDefaults');
     handleCalendarDefaults(traceIn, traceOut, [xName, yName], layout);
 
-    return true;
+    return traceOut.z.length;
 };
 
 function coordDefaults(coordStr, coerce) {
@@ -79,7 +76,7 @@ function isValidZ(z) {
 
     for(var i = 0; i < z.length; i++) {
         zi = z[i];
-        if(!Lib.isArrayOrTypedArray(zi)) {
+        if(!Array.isArray(zi)) {
             allRowsAreArrays = false;
             break;
         }

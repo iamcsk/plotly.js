@@ -9,7 +9,7 @@
 
 'use strict';
 
-var axisIds = require('../../plots/cartesian/axis_ids');
+var Axes = require('../../plots/cartesian/axes');
 var scatterSubTypes = require('../../traces/scatter/subtypes');
 var Registry = require('../../registry');
 
@@ -71,24 +71,20 @@ module.exports = function manageModeBar(gd) {
 
 // logic behind which buttons are displayed by default
 function getButtonGroups(gd, buttonsToRemove, buttonsToAdd) {
-    var fullLayout = gd._fullLayout;
-    var fullData = gd._fullData;
+    var fullLayout = gd._fullLayout,
+        fullData = gd._fullData;
 
-    var hasCartesian = fullLayout._has('cartesian');
-    var hasGL3D = fullLayout._has('gl3d');
-    var hasGeo = fullLayout._has('geo');
-    var hasPie = fullLayout._has('pie');
-    var hasGL2D = fullLayout._has('gl2d');
-    var hasTernary = fullLayout._has('ternary');
-    var hasMapbox = fullLayout._has('mapbox');
-    var hasPolar = fullLayout._has('polar');
-    var allAxesFixed = areAllAxesFixed(fullLayout);
+    var hasCartesian = fullLayout._has('cartesian'),
+        hasGL3D = fullLayout._has('gl3d'),
+        hasGeo = fullLayout._has('geo'),
+        hasPie = fullLayout._has('pie'),
+        hasGL2D = fullLayout._has('gl2d'),
+        hasTernary = fullLayout._has('ternary'),
+        hasMapbox = fullLayout._has('mapbox');
 
     var groups = [];
 
     function addGroup(newGroup) {
-        if(!newGroup.length) return;
-
         var out = [];
 
         for(var i = 0; i < newGroup.length; i++) {
@@ -103,85 +99,74 @@ function getButtonGroups(gd, buttonsToRemove, buttonsToAdd) {
     // buttons common to all plot types
     addGroup(['toImage', 'sendDataToCloud']);
 
-    var zoomGroup = [];
-    var hoverGroup = [];
-    var resetGroup = [];
-    var dragModeGroup = [];
-
-    if((hasCartesian || hasGL2D || hasPie || hasTernary) + hasGeo + hasGL3D + hasMapbox + hasPolar > 1) {
-        // graphs with more than one plot types get 'union buttons'
-        // which reset the view or toggle hover labels across all subplots.
-        hoverGroup = ['toggleHover'];
-        resetGroup = ['resetViews'];
-    }
-    else if(hasGeo) {
-        zoomGroup = ['zoomInGeo', 'zoomOutGeo'];
-        hoverGroup = ['hoverClosestGeo'];
-        resetGroup = ['resetGeo'];
-    }
-    else if(hasGL3D) {
-        hoverGroup = ['hoverClosest3d'];
-        resetGroup = ['resetCameraDefault3d', 'resetCameraLastSave3d'];
-    }
-    else if(hasMapbox) {
-        hoverGroup = ['toggleHover'];
-        resetGroup = ['resetViewMapbox'];
-    }
-    else if(hasGL2D) {
-        hoverGroup = ['hoverClosestGl2d'];
-    }
-    else if(hasPie) {
-        hoverGroup = ['hoverClosestPie'];
-    }
-    else { // hasPolar, hasTernary
-        // always show at least one hover icon.
-        hoverGroup = ['toggleHover'];
-    }
-    // if we have cartesian, allow switching between closest and compare
-    // regardless of what other types are on the plot, since they'll all
-    // just treat any truthy hovermode as 'closest'
-    if(hasCartesian) {
-        hoverGroup = ['toggleSpikelines', 'hoverClosestCartesian', 'hoverCompareCartesian'];
-    }
-
-    if((hasCartesian || hasGL2D) && !allAxesFixed) {
-        zoomGroup = ['zoomIn2d', 'zoomOut2d', 'autoScale2d'];
-        if(resetGroup[0] !== 'resetViews') resetGroup = ['resetScale2d'];
+    // graphs with more than one plot types get 'union buttons'
+    // which reset the view or toggle hover labels across all subplots.
+    if((hasCartesian || hasGL2D || hasPie || hasTernary) + hasGeo + hasGL3D > 1) {
+        addGroup(['resetViews', 'toggleHover']);
+        return appendButtonsToGroups(groups, buttonsToAdd);
     }
 
     if(hasGL3D) {
-        dragModeGroup = ['zoom3d', 'pan3d', 'orbitRotation', 'tableRotation'];
-    }
-    else if(((hasCartesian || hasGL2D) && !allAxesFixed) || hasTernary) {
-        dragModeGroup = ['zoom2d', 'pan2d'];
-    }
-    else if(hasMapbox || hasGeo) {
-        dragModeGroup = ['pan2d'];
-    }
-    else if(hasPolar) {
-        dragModeGroup = ['zoom2d'];
-    }
-    if(isSelectable(fullData)) {
-        dragModeGroup.push('select2d', 'lasso2d');
+        addGroup(['zoom3d', 'pan3d', 'orbitRotation', 'tableRotation']);
+        addGroup(['resetCameraDefault3d', 'resetCameraLastSave3d']);
+        addGroup(['hoverClosest3d']);
     }
 
-    addGroup(dragModeGroup);
-    addGroup(zoomGroup.concat(resetGroup));
-    addGroup(hoverGroup);
+    if(hasGeo) {
+        addGroup(['zoomInGeo', 'zoomOutGeo', 'resetGeo']);
+        addGroup(['hoverClosestGeo']);
+    }
+
+    var allAxesFixed = areAllAxesFixed(fullLayout),
+        dragModeGroup = [];
+
+    if(((hasCartesian || hasGL2D) && !allAxesFixed) || hasTernary) {
+        dragModeGroup = ['zoom2d', 'pan2d'];
+    }
+    if(hasMapbox) {
+        dragModeGroup = ['pan2d'];
+    }
+    if(isSelectable(fullData)) {
+        dragModeGroup.push('select2d');
+        dragModeGroup.push('lasso2d');
+    }
+    if(dragModeGroup.length) addGroup(dragModeGroup);
+
+    if((hasCartesian || hasGL2D) && !allAxesFixed && !hasTernary) {
+        addGroup(['zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d']);
+    }
+
+    if(hasCartesian && hasPie) {
+        addGroup(['toggleHover']);
+    }
+    else if(hasGL2D) {
+        addGroup(['hoverClosestGl2d']);
+    }
+    else if(hasCartesian) {
+        addGroup(['toggleSpikelines', 'hoverClosestCartesian', 'hoverCompareCartesian']);
+    }
+    else if(hasPie) {
+        addGroup(['hoverClosestPie']);
+    }
+    else if(hasMapbox) {
+        addGroup(['resetViewMapbox', 'toggleHover']);
+    }
 
     return appendButtonsToGroups(groups, buttonsToAdd);
 }
 
 function areAllAxesFixed(fullLayout) {
-    var axList = axisIds.list({_fullLayout: fullLayout}, null, true);
+    var axList = Axes.list({_fullLayout: fullLayout}, null, true);
+    var allFixed = true;
 
     for(var i = 0; i < axList.length; i++) {
         if(!axList[i].fixedrange) {
-            return false;
+            allFixed = false;
+            break;
         }
     }
 
-    return true;
+    return allFixed;
 }
 
 // look for traces that support selection
@@ -198,10 +183,6 @@ function isSelectable(fullData) {
 
         if(Registry.traceIs(trace, 'scatter-like')) {
             if(scatterSubTypes.hasMarkers(trace) || scatterSubTypes.hasText(trace)) {
-                selectable = true;
-            }
-        } else if(Registry.traceIs(trace, 'box-violin')) {
-            if(trace.boxpoints === 'all' || trace.points === 'all') {
                 selectable = true;
             }
         }

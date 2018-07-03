@@ -6,16 +6,20 @@
 * LICENSE file in the root directory of this source tree.
 */
 
+
 'use strict';
+var colorMix = require('tinycolor2').mix;
 
 var Lib = require('../../../lib');
+
 var layoutAttributes = require('./axis_attributes');
 var handleTickLabelDefaults = require('../../cartesian/tick_label_defaults');
 var handleTickMarkDefaults = require('../../cartesian/tick_mark_defaults');
 var handleTickValueDefaults = require('../../cartesian/tick_value_defaults');
-var handleLineGridDefaults = require('../../cartesian/line_grid_defaults');
+
 
 module.exports = function supplyLayoutDefaults(containerIn, containerOut, options) {
+
     function coerce(attr, dflt) {
         return Lib.coerce(containerIn, containerOut, layoutAttributes, attr, dflt);
     }
@@ -44,7 +48,8 @@ module.exports = function supplyLayoutDefaults(containerIn, containerOut, option
     coerce('min');
 
     handleTickValueDefaults(containerIn, containerOut, coerce, 'linear');
-    handleTickLabelDefaults(containerIn, containerOut, coerce, 'linear', {});
+    handleTickLabelDefaults(containerIn, containerOut, coerce, 'linear',
+        { noHover: false });
     handleTickMarkDefaults(containerIn, containerOut, coerce,
         { outerTicks: true });
 
@@ -59,18 +64,21 @@ module.exports = function supplyLayoutDefaults(containerIn, containerOut, option
         coerce('tickformat');
     }
 
-    handleLineGridDefaults(containerIn, containerOut, coerce, {
-        dfltColor: dfltColor,
-        bgColor: options.bgColor,
+    coerce('hoverformat');
+
+    var showLine = coerce('showline');
+    if(showLine) {
+        coerce('linecolor', dfltColor);
+        coerce('linewidth');
+    }
+
+    var showGridLines = coerce('showgrid');
+    if(showGridLines) {
         // default grid color is darker here (60%, vs cartesian default ~91%)
         // because the grid is not square so the eye needs heavier cues to follow
-        blend: 60,
-        showLine: true,
-        showGrid: true,
-        noZeroLine: true,
-        attributes: layoutAttributes
-    });
+        coerce('gridcolor', colorMix(dfltColor, options.bgColor, 60).toRgbString());
+        coerce('gridwidth');
+    }
 
-    coerce('hoverformat');
     coerce('layer');
 };

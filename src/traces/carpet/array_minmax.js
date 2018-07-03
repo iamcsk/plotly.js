@@ -8,8 +8,6 @@
 
 'use strict';
 
-var isArrayOrTypedArray = require('../../lib').isArrayOrTypedArray;
-
 module.exports = function(a) {
     return minMax(a, 0);
 };
@@ -18,7 +16,7 @@ function minMax(a, depth) {
     // Limit to ten dimensional datasets. This seems *exceedingly* unlikely to
     // ever cause problems or even be a concern. It's include strictly so that
     // circular arrays could never cause this to loop.
-    if(!isArrayOrTypedArray(a) || depth >= 10) {
+    if(!Array.isArray(a) || depth >= 10) {
         return null;
     }
 
@@ -28,7 +26,7 @@ function minMax(a, depth) {
     for(var i = 0; i < n; i++) {
         var datum = a[i];
 
-        if(isArrayOrTypedArray(datum)) {
+        if(Array.isArray(datum)) {
             var result = minMax(datum, depth + 1);
 
             if(result) {

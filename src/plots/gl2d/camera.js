@@ -13,7 +13,6 @@ var mouseChange = require('mouse-change');
 var mouseWheel = require('mouse-wheel');
 var mouseOffset = require('mouse-event-offset');
 var cartesianConstants = require('../cartesian/constants');
-var hasPassive = require('has-passive-events');
 
 module.exports = createCamera;
 
@@ -64,21 +63,15 @@ function createCamera(scene) {
         var xy = mouseOffset(ev.changedTouches[0], element);
         handleInteraction(0, xy[0], xy[1]);
         handleInteraction(1, xy[0], xy[1]);
-
-        ev.preventDefault();
-    }, hasPassive ? {passive: false} : false);
+    });
     element.addEventListener('touchmove', function(ev) {
         ev.preventDefault();
         var xy = mouseOffset(ev.changedTouches[0], element);
         handleInteraction(1, xy[0], xy[1]);
-
-        ev.preventDefault();
-    }, hasPassive ? {passive: false} : false);
-    element.addEventListener('touchend', function(ev) {
+    });
+    element.addEventListener('touchend', function() {
         handleInteraction(0, result.lastPos[0], result.lastPos[1]);
-
-        ev.preventDefault();
-    }, hasPassive ? {passive: false} : false);
+    });
 
     function handleInteraction(buttons, x, y) {
         var dataBox = scene.calcDataBox(),
@@ -263,38 +256,43 @@ function createCamera(scene) {
     }
 
     result.wheelListener = mouseWheel(element, function(dx, dy) {
-        if(!scene.scrollZoom) return false;
-
         var dataBox = scene.calcDataBox(),
             viewBox = plot.viewBox;
 
         var lastX = result.lastPos[0],
             lastY = result.lastPos[1];
 
-        var scale = Math.exp(5.0 * dy / (viewBox[3] - viewBox[1]));
+        switch(scene.fullLayout.dragmode) {
+            case 'zoom':
+                break;
 
-        var cx = lastX /
-                (viewBox[2] - viewBox[0]) * (dataBox[2] - dataBox[0]) +
-            dataBox[0];
-        var cy = lastY /
-                (viewBox[3] - viewBox[1]) * (dataBox[3] - dataBox[1]) +
-            dataBox[1];
+            case 'pan':
+                var scale = Math.exp(0.1 * dy / (viewBox[3] - viewBox[1]));
 
-        dataBox[0] = (dataBox[0] - cx) * scale + cx;
-        dataBox[2] = (dataBox[2] - cx) * scale + cx;
-        dataBox[1] = (dataBox[1] - cy) * scale + cy;
-        dataBox[3] = (dataBox[3] - cy) * scale + cy;
+                var cx = lastX /
+                        (viewBox[2] - viewBox[0]) * (dataBox[2] - dataBox[0]) +
+                    dataBox[0];
+                var cy = lastY /
+                        (viewBox[3] - viewBox[1]) * (dataBox[3] - dataBox[1]) +
+                    dataBox[1];
 
-        scene.setRanges(dataBox);
+                dataBox[0] = (dataBox[0] - cx) * scale + cx;
+                dataBox[2] = (dataBox[2] - cx) * scale + cx;
+                dataBox[1] = (dataBox[1] - cy) * scale + cy;
+                dataBox[3] = (dataBox[3] - cy) * scale + cy;
 
-        result.lastInputTime = Date.now();
-        unSetAutoRange();
-        scene.cameraChanged();
-        scene.handleAnnotations();
-        scene.relayoutCallback();
+                scene.setRanges(dataBox);
+
+                result.lastInputTime = Date.now();
+                unSetAutoRange();
+                scene.cameraChanged();
+                scene.handleAnnotations();
+                scene.relayoutCallback();
+                break;
+        }
 
         return true;
-    }, true);
+    });
 
     return result;
 }

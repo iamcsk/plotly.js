@@ -55,7 +55,10 @@ module.exports = function supplyDefaults(traceIn, traceOut, defaultColor, layout
         return;
     }
 
-    traceOut._length = len;
+    // cut all data arrays down to same length
+    if(a && len < a.length) traceOut.a = a.slice(0, len);
+    if(b && len < b.length) traceOut.b = b.slice(0, len);
+    if(c && len < c.length) traceOut.c = c.slice(0, len);
 
     coerce('sum');
 
@@ -82,7 +85,6 @@ module.exports = function supplyDefaults(traceIn, traceOut, defaultColor, layout
     var dfltHoverOn = [];
 
     if(subTypes.hasMarkers(traceOut) || subTypes.hasText(traceOut)) {
-        coerce('cliponaxis');
         coerce('marker.maxdisplayed');
         dfltHoverOn.push('points');
     }
@@ -98,5 +100,5 @@ module.exports = function supplyDefaults(traceIn, traceOut, defaultColor, layout
     }
     coerce('hoveron', dfltHoverOn.join('+') || 'points');
 
-    Lib.coerceSelectionMarkerOpacity(traceOut, coerce);
+    coerce('cliponaxis');
 };

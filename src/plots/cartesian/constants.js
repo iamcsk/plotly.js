@@ -7,30 +7,27 @@
 */
 
 'use strict';
-var counterRegex = require('../../lib/regex').counter;
 
 
 module.exports = {
 
     idRegex: {
-        x: counterRegex('x'),
-        y: counterRegex('y')
+        x: /^x([2-9]|[1-9][0-9]+)?$/,
+        y: /^y([2-9]|[1-9][0-9]+)?$/
     },
 
-    attrRegex: counterRegex('[xy]axis'),
+    attrRegex: {
+        x: /^xaxis([2-9]|[1-9][0-9]+)?$/,
+        y: /^yaxis([2-9]|[1-9][0-9]+)?$/
+    },
 
     // axis match regular expression
-    xAxisMatch: counterRegex('xaxis'),
-    yAxisMatch: counterRegex('yaxis'),
+    xAxisMatch: /^xaxis[0-9]*$/,
+    yAxisMatch: /^yaxis[0-9]*$/,
 
     // pattern matching axis ids and names
-    // note that this is more permissive than counterRegex, as
-    // id2name, name2id, and cleanId accept "x1" etc
     AX_ID_PATTERN: /^[xyz][0-9]*$/,
     AX_NAME_PATTERN: /^[xyz]axis[0-9]*$/,
-
-    // and for 2D subplots
-    SUBPLOT_PATTERN: /^x([0-9]*)y([0-9]*)$/,
 
     // pixels to move mouse before you stop clamping to starting point
     MINDRAG: 8,
@@ -50,27 +47,24 @@ module.exports = {
     // delay before a redraw (relayout) after smooth panning and zooming
     REDRAWDELAY: 50,
 
-    // throttling limit (ms) for selectPoints calls
-    SELECTDELAY: 100,
-
-    // cache ID suffix for throttle
-    SELECTID: '-select',
-
     // last resort axis ranges for x and y axes if we have no data
     DFLTRANGEX: [-1, 6],
     DFLTRANGEY: [-1, 4],
 
-    // Layers to keep trace types in the right order
-    // N.B. each  'unique' plot method must have its own layer
+    // Layers to keep trace types in the right order.
+    // from back to front:
+    // 1. heatmaps, 2D histos and contour maps
+    // 2. bars / 1D histos
+    // 3. errorbars for bars and scatter
+    // 4. scatter
+    // 5. box plots
     traceLayerClasses: [
-        'heatmaplayer',
-        'contourcarpetlayer', 'contourlayer',
+        'imagelayer',
+        'maplayer',
         'barlayer',
         'carpetlayer',
-        'violinlayer',
         'boxlayer',
-        'ohlclayer',
-        'scattercarpetlayer', 'scatterlayer'
+        'scatterlayer'
     ],
 
     layerValue2layerClass: {

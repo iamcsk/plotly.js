@@ -6,11 +6,12 @@
 * LICENSE file in the root directory of this source tree.
 */
 
+
 'use strict';
 
 var d3 = require('d3');
 
-var Registry = require('../../registry');
+var Plotly = require('../../plotly');
 var Plots = require('../../plots/plots');
 var Lib = require('../../lib');
 var Axes = require('../../plots/cartesian/axes');
@@ -20,7 +21,9 @@ var Fx = require('../fx');
 var svgTextUtils = require('../../lib/svg_text_utils');
 var setCursor = require('../../lib/setcursor');
 var dragElement = require('../dragelement');
+
 var drawArrowHead = require('./draw_arrow_head');
+
 
 // Annotations are stored in gd.layout.annotations, an array of objects
 // index can point to one item in this array,
@@ -132,7 +135,7 @@ function drawRaw(gd, options, index, subplotId, xa, ya) {
 
     var annTextGroupInner = annTextGroup.append('g')
         .style('pointer-events', textEvents ? 'all' : null)
-        .call(setCursor, 'pointer')
+        .call(setCursor, 'default')
         .on('click', function() {
             gd._dragging = false;
 
@@ -191,7 +194,7 @@ function drawRaw(gd, options, index, subplotId, xa, ya) {
 
     var isSizeConstrained = options.width || options.height;
 
-    var annTextClip = fullLayout._topclips
+    var annTextClip = fullLayout._defs.select('.clips')
         .selectAll('#' + annClipID)
         .data(isSizeConstrained ? [0] : []);
 
@@ -506,8 +509,7 @@ function drawRaw(gd, options, index, subplotId, xa, ya) {
             });
 
             var strokewidth = options.arrowwidth,
-                arrowColor = options.arrowcolor,
-                arrowSide = options.arrowside;
+                arrowColor = options.arrowcolor;
 
             var arrowGroup = annGroup.append('g')
                 .style({opacity: Color.opacity(arrowColor)})
@@ -518,7 +520,7 @@ function drawRaw(gd, options, index, subplotId, xa, ya) {
                 .style('stroke-width', strokewidth + 'px')
                 .call(Color.stroke, Color.rgb(arrowColor));
 
-            drawArrowHead(arrow, arrowSide, options);
+            drawArrowHead(arrow, options.arrowhead, 'end', options.arrowsize, options.standoff);
 
             // the arrow dragger is a small square right at the head, then a line to the tail,
             // all expanded by a stroke width of 6px plus the arrow line width
@@ -533,7 +535,6 @@ function drawRaw(gd, options, index, subplotId, xa, ya) {
                 var arrowDrag = arrowGroup.append('path')
                     .classed('annotation-arrow', true)
                     .classed('anndrag', true)
-                    .classed('cursor-move', true)
                     .attr({
                         d: 'M3,3H-3V-3H3ZM0,0L' + (tailX - arrowDragHeadX) + ',' + (tailY - arrowDragHeadY),
                         transform: 'translate(' + arrowDragHeadX + ',' + arrowDragHeadY + ')'
@@ -591,10 +592,12 @@ function drawRaw(gd, options, index, subplotId, xa, ya) {
                                    xcenter + ',' + ycenter + ')'
                         });
                     },
-                    doneFn: function() {
-                        Registry.call('relayout', gd, update);
-                        var notesBox = document.querySelector('.js-notes-box-panel');
-                        if(notesBox) notesBox.redraw(notesBox.selectedObj);
+                    doneFn: function(dragged) {
+                        if(dragged) {
+                            Plotly.relayout(gd, update);
+                            var notesBox = document.querySelector('.js-notes-box-panel');
+                            if(notesBox) notesBox.redraw(notesBox.selectedObj);
+                        }
                     }
                 });
             }
@@ -634,10 +637,8 @@ function drawRaw(gd, options, index, subplotId, xa, ya) {
                         drawArrow(dx, dy);
                     }
                     else if(!subplotId) {
-                        if(xa) {
-                            update[annbase + '.x'] = xa.p2r(xa.r2p(options.x) + dx);
-
-                        } else {
+                        if(xa) update[annbase + '.x'] = options.x + dx / xa._m;
+                        else {
                             var widthFraction = options._xsize / gs.w,
                                 xLeft = options.x + (options._xshift - options.xshift) / gs.w -
                                     widthFraction / 2;
@@ -646,9 +647,8 @@ function drawRaw(gd, options, index, subplotId, xa, ya) {
                                 widthFraction, 0, 1, options.xanchor);
                         }
 
-                        if(ya) {
-                            update[annbase + '.y'] = ya.p2r(ya.r2p(options.y) + dy);
-                        } else {
+                        if(ya) update[annbase + '.y'] = options.y + dy / ya._m;
+                        else {
                             var heightFraction = options._ysize / gs.h,
                                 yBottom = options.y - (options._yshift + options.yshift) / gs.h -
                                     heightFraction / 2;
@@ -672,11 +672,13 @@ function drawRaw(gd, options, index, subplotId, xa, ya) {
 
                     setCursor(annTextGroupInner, csr);
                 },
-                doneFn: function() {
+                doneFn: function(dragged) {
                     setCursor(annTextGroupInner);
-                    Registry.call('relayout', gd, update);
-                    var notesBox = document.querySelector('.js-notes-box-panel');
-                    if(notesBox) notesBox.redraw(notesBox.selectedObj);
+                    if(dragged) {
+                        Plotly.relayout(gd, update);
+                        var notesBox = document.querySelector('.js-notes-box-panel');
+                        if(notesBox) notesBox.redraw(notesBox.selectedObj);
+                    }
                 }
             });
         }
@@ -699,7 +701,7 @@ function drawRaw(gd, options, index, subplotId, xa, ya) {
                     update[ya._name + '.autorange'] = true;
                 }
 
-                Registry.call('relayout', gd, update);
+                Plotly.relayout(gd, update);
             });
     }
     else annText.call(textLayout);

@@ -6,56 +6,46 @@
 * LICENSE file in the root directory of this source tree.
 */
 
+
 'use strict';
 
-var Lib = require('../../lib');
-var overrideAll = require('../../plot_api/edit_types').overrideAll;
+var errorBars = module.exports = {};
 
-var attributes = require('./attributes');
+errorBars.attributes = require('./attributes');
 
-var xyAttrs = {
-    error_x: Lib.extendFlat({}, attributes),
-    error_y: Lib.extendFlat({}, attributes)
-};
-delete xyAttrs.error_x.copy_zstyle;
-delete xyAttrs.error_y.copy_zstyle;
-delete xyAttrs.error_y.copy_ystyle;
+errorBars.supplyDefaults = require('./defaults');
 
-var xyzAttrs = {
-    error_x: Lib.extendFlat({}, attributes),
-    error_y: Lib.extendFlat({}, attributes),
-    error_z: Lib.extendFlat({}, attributes)
-};
-delete xyzAttrs.error_x.copy_ystyle;
-delete xyzAttrs.error_y.copy_ystyle;
-delete xyzAttrs.error_z.copy_ystyle;
-delete xyzAttrs.error_z.copy_zstyle;
+errorBars.calc = require('./calc');
 
-module.exports = {
-    moduleType: 'component',
-    name: 'errorbars',
+errorBars.calcFromTrace = function(trace, layout) {
+    var x = trace.x || [],
+        y = trace.y || [],
+        len = x.length || y.length;
 
-    schema: {
-        traces: {
-            scatter: xyAttrs,
-            bar: xyAttrs,
-            histogram: xyAttrs,
-            scatter3d: overrideAll(xyzAttrs, 'calc', 'nested'),
-            scattergl: overrideAll(xyAttrs, 'calc', 'nested')
-        }
-    },
+    var calcdataMock = new Array(len);
 
-    supplyDefaults: require('./defaults'),
+    for(var i = 0; i < len; i++) {
+        calcdataMock[i] = {
+            x: x[i],
+            y: y[i]
+        };
+    }
 
-    calc: require('./calc'),
-    makeComputeError: require('./compute_error'),
+    calcdataMock[0].trace = trace;
 
-    plot: require('./plot'),
-    style: require('./style'),
-    hoverInfo: hoverInfo
+    errorBars.calc({
+        calcdata: [calcdataMock],
+        _fullLayout: layout
+    });
+
+    return calcdataMock;
 };
 
-function hoverInfo(calcPoint, trace, hoverPoint) {
+errorBars.plot = require('./plot');
+
+errorBars.style = require('./style');
+
+errorBars.hoverInfo = function(calcPoint, trace, hoverPoint) {
     if((trace.error_y || {}).visible) {
         hoverPoint.yerr = calcPoint.yh - calcPoint.y;
         if(!trace.error_y.symmetric) hoverPoint.yerrneg = calcPoint.y - calcPoint.ys;
@@ -64,4 +54,4 @@ function hoverInfo(calcPoint, trace, hoverPoint) {
         hoverPoint.xerr = calcPoint.xh - calcPoint.x;
         if(!trace.error_x.symmetric) hoverPoint.xerrneg = calcPoint.x - calcPoint.xs;
     }
-}
+};

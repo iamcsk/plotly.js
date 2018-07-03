@@ -18,7 +18,7 @@ module.exports = function plot(gd, subplot, moduleCalcData) {
         xaxis: subplot.xaxis,
         yaxis: subplot.yaxis,
         plot: subplot.framework,
-        layerClipId: subplot._hasClipOnAxisFalse ? subplot.clipIds.forTraces : null
+        layerClipId: subplot._hasClipOnAxisFalse ? subplot.clipIds.circle : null
     };
 
     var radialAxis = subplot.radialAxis;
@@ -60,7 +60,5 @@ module.exports = function plot(gd, subplot, moduleCalcData) {
         }
     }
 
-    var scatterLayer = subplot.layers.frontplot.select('g.scatterlayer');
-
-    scatterPlot(gd, plotinfo, moduleCalcData, scatterLayer);
+    scatterPlot(gd, plotinfo, moduleCalcData);
 };

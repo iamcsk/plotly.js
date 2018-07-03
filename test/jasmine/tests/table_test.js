@@ -8,7 +8,7 @@ var createGraphDiv = require('../assets/create_graph_div');
 var destroyGraphDiv = require('../assets/destroy_graph_div');
 var supplyAllDefaults = require('../assets/supply_defaults');
 
-var mockMulti = require('@mocks/table_latex_multitrace_scatter.json');
+var mockMulti = require('@mocks/table_latex_multitrace.json');
 
 // mock with two columns; lowest column count of general case
 var mock2 = Lib.extendDeep({}, mockMulti);
@@ -305,7 +305,7 @@ describe('table', function() {
                 expect(gd.data[0].header.fill.color).toEqual('magenta');
                 expect(gd.data[0].header.values.length).toEqual(7);
                 expect(gd.data[0].cells.values.length).toEqual(7);
-                expect(gd.data[0].header.line.color).toEqual(['dimgray', 'grey']); // no change relative to original mock value
+                expect(gd.data[0].header.line.color).toEqual('lightgray'); // no change relative to original mock value
                 expect(gd.data[0].cells.line.color).toEqual(['grey']); // no change relative to original mock value
 
                 done();
@@ -318,7 +318,7 @@ describe('table', function() {
             function restyleValues(what, key, setterValue) {
 
                 // array values need to be wrapped in an array; unwrapping here for value comparison
-                var value = Array.isArray(setterValue) ? setterValue[0] : setterValue;
+                var value = Lib.isArray(setterValue) ? setterValue[0] : setterValue;
 
                 return function() {
                     return Plotly.restyle(gd, what + '.values[' + key + ']', setterValue).then(function() {
@@ -367,7 +367,7 @@ describe('table', function() {
 
             function restyleValues(what, fun, setterValue) {
 
-                var value = Array.isArray(setterValue) ? setterValue[0] : setterValue;
+                var value = Lib.isArray(setterValue) ? setterValue[0] : setterValue;
 
                 return function() {
                     return Plotly.restyle(gd, what, setterValue).then(function() {

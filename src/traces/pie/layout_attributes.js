@@ -14,8 +14,5 @@ module.exports = {
      * but it can contain many labels, and can hide slices
      * from several pies simultaneously
      */
-    hiddenlabels: {
-        valType: 'data_array',
-        editType: 'calc'
-    }
+    hiddenlabels: {valType: 'data_array'}
 };

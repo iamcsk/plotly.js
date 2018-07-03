@@ -9,6 +9,9 @@
 'use strict';
 
 module.exports = {
+    // max pixels away from mouse to allow a point to highlight
+    MAXDIST: 20,
+
     // hover labels for multiple horizontal bars get tilted by this angle
     YANGLE: 60,
 
@@ -23,8 +26,5 @@ module.exports = {
     HOVERFONT: 'Arial, sans-serif',
 
     // minimum time (msec) between hover calls
-    HOVERMINTIME: 50,
-
-    // ID suffix (with fullLayout._uid) for hover events in the throttle cache
-    HOVERID: '-hover'
+    HOVERMINTIME: 50
 };

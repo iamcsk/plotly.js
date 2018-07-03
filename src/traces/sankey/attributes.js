@@ -8,22 +8,45 @@
 
 'use strict';
 
+var shapeAttrs = require('../../components/shapes/attributes');
 var fontAttrs = require('../../plots/font_attributes');
 var plotAttrs = require('../../plots/attributes');
 var colorAttrs = require('../../components/color/attributes');
-var fxAttrs = require('../../components/fx/attributes');
-var domainAttrs = require('../../plots/domain').attributes;
 
 var extendFlat = require('../../lib/extend').extendFlat;
-var overrideAll = require('../../plot_api/edit_types').overrideAll;
 
-module.exports = overrideAll({
+module.exports = {
     hoverinfo: extendFlat({}, plotAttrs.hoverinfo, {
-        flags: ['label', 'text', 'value', 'percent', 'name'],
+        flags: ['label', 'text', 'value', 'percent', 'name']
     }),
-    hoverlabel: fxAttrs.hoverlabel, // needs editType override
-
-    domain: domainAttrs({name: 'sankey', trace: true}),
+    domain: {
+        x: {
+            valType: 'info_array',
+            role: 'info',
+            items: [
+                {valType: 'number', min: 0, max: 1},
+                {valType: 'number', min: 0, max: 1}
+            ],
+            dflt: [0, 1],
+            description: [
+                'Sets the horizontal domain of this `sankey` trace',
+                '(in plot fraction).'
+            ].join(' ')
+        },
+        y: {
+            valType: 'info_array',
+            role: 'info',
+            items: [
+                {valType: 'number', min: 0, max: 1},
+                {valType: 'number', min: 0, max: 1}
+            ],
+            dflt: [0, 1],
+            description: [
+                'Sets the vertical domain of this `sankey` trace',
+                '(in plot fraction).'
+            ].join(' ')
+        }
+    },
 
     orientation: {
         valType: 'enumerated',
@@ -68,9 +91,7 @@ module.exports = overrideAll({
         ].join(' ')
     },
 
-    textfont: fontAttrs({
-        description: 'Sets the font for node labels'
-    }),
+    textfont: fontAttrs,
 
     node: {
         label: {
@@ -79,9 +100,7 @@ module.exports = overrideAll({
             role: 'info',
             description: 'The shown name of the node.'
         },
-        color: {
-            valType: 'color',
-            role: 'style',
+        color: extendFlat({}, shapeAttrs.fillcolor, {
             arrayOk: true,
             description: [
                 'Sets the `node` color. It can be a single value, or an array for specifying color for each `node`.',
@@ -89,7 +108,7 @@ module.exports = overrideAll({
                 'to have a variety of colors. These defaults are not fully opaque, to allow some visibility of',
                 'what is beneath the node.'
             ].join(' ')
-        },
+        }),
         line: {
             color: {
                 valType: 'color',
@@ -137,15 +156,13 @@ module.exports = overrideAll({
             role: 'info',
             description: 'The shown name of the link.'
         },
-        color: {
-            valType: 'color',
-            role: 'style',
+        color: extendFlat({}, shapeAttrs.fillcolor, {
             arrayOk: true,
             description: [
                 'Sets the `link` color. It can be a single value, or an array for specifying color for each `link`.',
                 'If `link.color` is omitted, then by default, a translucent grey link will be used.'
             ].join(' ')
-        },
+        }),
         line: {
             color: {
                 valType: 'color',
@@ -187,4 +204,4 @@ module.exports = overrideAll({
         },
         description: 'The links of the Sankey plot.'
     }
-}, 'calc', 'nested');
+};

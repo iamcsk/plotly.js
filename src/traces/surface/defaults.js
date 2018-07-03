@@ -29,16 +29,30 @@ module.exports = function supplyDefaults(traceIn, traceOut, defaultColor, layout
         return;
     }
 
-    var x = coerce('x');
-    coerce('y');
+    var xlen = z[0].length;
+    var ylen = z.length;
 
-    traceOut._xlength = (Array.isArray(x) && Lib.isArrayOrTypedArray(x[0])) ? z.length : z[0].length;
-    traceOut._ylength = z.length;
+    coerce('x');
+    coerce('y');
 
     var handleCalendarDefaults = Registry.getComponentMethod('calendars', 'handleTraceDefaults');
     handleCalendarDefaults(traceIn, traceOut, ['x', 'y', 'z'], layout);
 
+    if(!Array.isArray(traceOut.x)) {
+        // build a linearly scaled x
+        traceOut.x = [];
+        for(i = 0; i < xlen; ++i) {
+            traceOut.x[i] = i;
+        }
+    }
+
     coerce('text');
+    if(!Array.isArray(traceOut.y)) {
+        traceOut.y = [];
+        for(i = 0; i < ylen; ++i) {
+            traceOut.y[i] = i;
+        }
+    }
 
     // Coerce remaining properties
     [
@@ -96,10 +110,6 @@ module.exports = function supplyDefaults(traceIn, traceOut, defaultColor, layout
     colorscaleDefaults(
         traceIn, traceOut, layout, coerce, {prefix: '', cLetter: 'c'}
     );
-
-    // disable 1D transforms - currently surface does NOT support column data like heatmap does
-    // you can use mesh3d for this use case, but not surface
-    traceOut._length = null;
 };
 
 function mapLegacy(traceIn, oldAttr, newAttr) {

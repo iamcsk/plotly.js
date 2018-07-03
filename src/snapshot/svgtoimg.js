@@ -33,12 +33,6 @@ function svgToImg(opts) {
         }
 
         var canvas = opts.canvas;
-        var scale = opts.scale || 1;
-        var w0 = opts.width || 300;
-        var h0 = opts.height || 150;
-        var w1 = scale * w0;
-        var h1 = scale * h0;
-
         var ctx = canvas.getContext('2d');
         var img = new Image();
 
@@ -47,8 +41,8 @@ function svgToImg(opts) {
         //  is not restricted to svg
         var url = 'data:image/svg+xml,' + encodeURIComponent(svg);
 
-        canvas.width = w1;
-        canvas.height = h1;
+        canvas.height = opts.height || 150;
+        canvas.width = opts.width || 300;
 
         img.onload = function() {
             var imgData;
@@ -56,7 +50,7 @@ function svgToImg(opts) {
             // don't need to draw to canvas if svg
             //  save some time and also avoid failure on IE
             if(format !== 'svg') {
-                ctx.drawImage(img, 0, 0, w1, h1);
+                ctx.drawImage(img, 0, 0);
             }
 
             switch(format) {

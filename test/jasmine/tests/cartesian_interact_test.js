@@ -8,14 +8,12 @@ var createGraphDiv = require('../assets/create_graph_div');
 var destroyGraphDiv = require('../assets/destroy_graph_div');
 var mouseEvent = require('../assets/mouse_event');
 var failTest = require('../assets/fail_test');
+var customMatchers = require('../assets/custom_matchers');
 var selectButton = require('../assets/modebar_button');
 var drag = require('../assets/drag');
 var doubleClick = require('../assets/double_click');
 var getNodeCoords = require('../assets/get_node_coords');
 var delay = require('../assets/delay');
-
-var customAssertions = require('../assets/custom_assertions');
-var assertNodeDisplay = customAssertions.assertNodeDisplay;
 
 var MODEBAR_DELAY = 500;
 
@@ -65,17 +63,33 @@ describe('zoom box element', function() {
 
 
 describe('main plot pan', function() {
-    var gd, modeBar, relayoutCallback;
 
-    beforeEach(function() {
+    var mock = require('@mocks/10.json'),
+        gd, modeBar, relayoutCallback;
+
+    beforeEach(function(done) {
         gd = createGraphDiv();
+
+        Plotly.plot(gd, mock.data, mock.layout).then(function() {
+
+            modeBar = gd._fullLayout._modeBar;
+            relayoutCallback = jasmine.createSpy('relayoutCallback');
+
+            gd.on('plotly_relayout', relayoutCallback);
+        })
+        .catch(failTest)
+        .then(done);
     });
 
     afterEach(destroyGraphDiv);
 
     it('should respond to pan interactions', function(done) {
-        var mock = require('@mocks/10.json');
+
+        jasmine.addMatchers(customMatchers);
+
         var precision = 5;
+
+        var buttonPan = selectButton(modeBar, 'pan2d');
 
         var originalX = [-0.6225, 5.5];
         var originalY = [-1.6340975059013805, 7.166241526218911];
@@ -83,191 +97,82 @@ describe('main plot pan', function() {
         var newX = [-2.0255729166666665, 4.096927083333333];
         var newY = [-0.3769062155984817, 8.42343281652181];
 
-        function _drag(x0, y0, x1, y1) {
-            mouseEvent('mousedown', x0, y0);
-            mouseEvent('mousemove', x1, y1);
-            mouseEvent('mouseup', x1, y1);
-        }
+        expect(gd.layout.xaxis.range).toBeCloseToArray(originalX, precision);
+        expect(gd.layout.yaxis.range).toBeCloseToArray(originalY, precision);
 
-        function _checkAxes(xRange, yRange) {
-            expect(gd.layout.xaxis.range).toBeCloseToArray(xRange, precision);
-            expect(gd.layout.yaxis.range).toBeCloseToArray(yRange, precision);
-        }
+        // Switch to pan mode
+        expect(buttonPan.isActive()).toBe(false); // initially, zoom is active
+        buttonPan.click();
+        expect(buttonPan.isActive()).toBe(true); // switched on dragmode
 
-        function _runDrag(xr0, xr1, yr0, yr1) {
-            // Drag scene along the X axis
-            _drag(110, 150, 220, 150);
-            _checkAxes(xr1, yr0);
+        // Switching mode must not change visible range
+        expect(gd.layout.xaxis.range).toBeCloseToArray(originalX, precision);
+        expect(gd.layout.yaxis.range).toBeCloseToArray(originalY, precision);
 
-            // Drag scene back along the X axis (not from the same starting point but same X delta)
-            _drag(280, 150, 170, 150);
-            _checkAxes(xr0, yr0);
-
-            // Drag scene along the Y axis
-            _drag(110, 150, 110, 190);
-            _checkAxes(xr0, yr1);
-
-            // Drag scene back along the Y axis (not from the same starting point but same Y delta)
-            _drag(280, 130, 280, 90);
-            _checkAxes(xr0, yr0);
-
-            // Drag scene along both the X and Y axis
-            _drag(110, 150, 220, 190);
-            _checkAxes(xr1, yr1);
-
-            // Drag scene back along the X and Y axis (not from the same starting point but same delta vector)
-            _drag(280, 130, 170, 90);
-            _checkAxes(xr0, yr0);
-        }
-
-        Plotly.plot(gd, mock.data, mock.layout).then(function() {
-            modeBar = gd._fullLayout._modeBar;
-            relayoutCallback = jasmine.createSpy('relayoutCallback');
-            gd.on('plotly_relayout', relayoutCallback);
-
-            var buttonPan = selectButton(modeBar, 'pan2d');
-
-            expect(gd.layout.xaxis.range).toBeCloseToArray(originalX, precision);
-            expect(gd.layout.yaxis.range).toBeCloseToArray(originalY, precision);
-
-            // Switch to pan mode
-            expect(buttonPan.isActive()).toBe(false); // initially, zoom is active
-            buttonPan.click();
-            expect(buttonPan.isActive()).toBe(true); // switched on dragmode
-
-            // Switching mode must not change visible range
-            expect(gd.layout.xaxis.range).toBeCloseToArray(originalX, precision);
-            expect(gd.layout.yaxis.range).toBeCloseToArray(originalY, precision);
-        })
-        .then(delay(MODEBAR_DELAY))
+        delay(MODEBAR_DELAY)()
         .then(function() {
+
             expect(relayoutCallback).toHaveBeenCalledTimes(1);
             relayoutCallback.calls.reset();
-            _runDrag(originalX, newX, originalY, newY);
+
+            // Drag scene along the X axis
+
+            mouseEvent('mousedown', 110, 150);
+            mouseEvent('mousemove', 220, 150);
+            mouseEvent('mouseup', 220, 150);
+
+            expect(gd.layout.xaxis.range).toBeCloseToArray(newX, precision);
+            expect(gd.layout.yaxis.range).toBeCloseToArray(originalY, precision);
+
+            // Drag scene back along the X axis (not from the same starting point but same X delta)
+
+            mouseEvent('mousedown', 280, 150);
+            mouseEvent('mousemove', 170, 150);
+            mouseEvent('mouseup', 170, 150);
+
+            expect(gd.layout.xaxis.range).toBeCloseToArray(originalX, precision);
+            expect(gd.layout.yaxis.range).toBeCloseToArray(originalY, precision);
+
+            // Drag scene along the Y axis
+
+            mouseEvent('mousedown', 110, 150);
+            mouseEvent('mousemove', 110, 190);
+            mouseEvent('mouseup', 110, 190);
+
+            expect(gd.layout.xaxis.range).toBeCloseToArray(originalX, precision);
+            expect(gd.layout.yaxis.range).toBeCloseToArray(newY, precision);
+
+            // Drag scene back along the Y axis (not from the same starting point but same Y delta)
+
+            mouseEvent('mousedown', 280, 130);
+            mouseEvent('mousemove', 280, 90);
+            mouseEvent('mouseup', 280, 90);
+
+            expect(gd.layout.xaxis.range).toBeCloseToArray(originalX, precision);
+            expect(gd.layout.yaxis.range).toBeCloseToArray(originalY, precision);
+
+            // Drag scene along both the X and Y axis
+
+            mouseEvent('mousedown', 110, 150);
+            mouseEvent('mousemove', 220, 190);
+            mouseEvent('mouseup', 220, 190);
+
+            expect(gd.layout.xaxis.range).toBeCloseToArray(newX, precision);
+            expect(gd.layout.yaxis.range).toBeCloseToArray(newY, precision);
+
+            // Drag scene back along the X and Y axis (not from the same starting point but same delta vector)
+
+            mouseEvent('mousedown', 280, 130);
+            mouseEvent('mousemove', 170, 90);
+            mouseEvent('mouseup', 170, 90);
+
+            expect(gd.layout.xaxis.range).toBeCloseToArray(originalX, precision);
+            expect(gd.layout.yaxis.range).toBeCloseToArray(originalY, precision);
         })
         .then(delay(MODEBAR_DELAY))
         .then(function() {
             // X and back; Y and back; XY and back
             expect(relayoutCallback).toHaveBeenCalledTimes(6);
-            return Plotly.relayout(gd, {'xaxis.fixedrange': true});
-        })
-        .then(function() {
-            relayoutCallback.calls.reset();
-            _runDrag(originalX, originalX, originalY, newY);
-        })
-        .then(delay(MODEBAR_DELAY))
-        .then(function() {
-            // Y and back; XY and back
-            // should perhaps be 4, but the noop drags still generate a relayout call.
-            // TODO: should we try and remove this call?
-            expect(relayoutCallback).toHaveBeenCalledTimes(6);
-            return Plotly.relayout(gd, {'yaxis.fixedrange': true});
-        })
-        .then(function() {
-            relayoutCallback.calls.reset();
-            _runDrag(originalX, originalX, originalY, originalY);
-        })
-        .then(delay(MODEBAR_DELAY))
-        .then(function() {
-            // both axes are fixed - no changes
-            expect(relayoutCallback).toHaveBeenCalledTimes(0);
-            return Plotly.relayout(gd, {'xaxis.fixedrange': false, dragmode: 'pan'});
-        })
-        .then(function() {
-            relayoutCallback.calls.reset();
-            _runDrag(originalX, newX, originalY, originalY);
-        })
-        .then(delay(MODEBAR_DELAY))
-        .then(function() {
-            // X and back; XY and back
-            expect(relayoutCallback).toHaveBeenCalledTimes(6);
-        })
-        .catch(failTest)
-        .then(done);
-    });
-
-    it('should show/hide `cliponaxis: false` pts according to range', function(done) {
-        function _assert(markerDisplay, textDisplay, barTextDisplay) {
-            var gd3 = d3.select(gd);
-
-            assertNodeDisplay(
-                gd3.select('.scatterlayer').selectAll('.point'),
-                markerDisplay,
-                'marker pts'
-            );
-            assertNodeDisplay(
-                gd3.select('.scatterlayer').selectAll('.textpoint'),
-                textDisplay,
-                'text pts'
-            );
-            assertNodeDisplay(
-                gd3.select('.barlayer').selectAll('.bartext'),
-                barTextDisplay,
-                'bar text'
-            );
-        }
-
-        function _run(p0, p1, markerDisplay, textDisplay, barTextDisplay) {
-            mouseEvent('mousedown', p0[0], p0[1]);
-            mouseEvent('mousemove', p1[0], p1[1]);
-
-            _assert(markerDisplay, textDisplay, barTextDisplay);
-
-            mouseEvent('mouseup', p1[0], p1[1]);
-        }
-
-        Plotly.newPlot(gd, [{
-            mode: 'markers+text',
-            x: [1, 2, 3],
-            y: [1, 2, 3],
-            text: ['a', 'b', 'c'],
-            cliponaxis: false
-        }, {
-            type: 'bar',
-            x: [1, 2, 3],
-            y: [1, 2, 3],
-            text: ['a', 'b', 'c'],
-            textposition: 'outside',
-            cliponaxis: false
-        }], {
-            xaxis: {range: [0, 4]},
-            yaxis: {range: [0, 4]},
-            width: 500,
-            height: 500,
-            dragmode: 'pan'
-        })
-        .then(function() {
-            _assert(
-                [null, null, null],
-                [null, null, null],
-                [null, null, null]
-            );
-        })
-        .then(function() {
-            _run(
-                [250, 250], [250, 150],
-                [null, null, 'none'],
-                [null, null, 'none'],
-                [null, null, 'none']
-            );
-            expect(gd._fullLayout.yaxis.range[1]).toBeLessThan(3);
-        })
-        .then(function() {
-            _run(
-                [250, 250], [150, 250],
-                ['none', null, 'none'],
-                ['none', null, 'none'],
-                ['none', null, 'none']
-            );
-            expect(gd._fullLayout.xaxis.range[0]).toBeGreaterThan(1);
-        })
-        .then(function() {
-            _run(
-                [250, 250], [350, 350],
-                [null, null, null],
-                [null, null, null],
-                [null, null, null]
-            );
         })
         .catch(failTest)
         .then(done);
@@ -276,6 +181,10 @@ describe('main plot pan', function() {
 
 describe('axis zoom/pan and main plot zoom', function() {
     var gd;
+
+    beforeAll(function() {
+        jasmine.addMatchers(customMatchers);
+    });
 
     beforeEach(function() {
         gd = createGraphDiv();
@@ -338,8 +247,8 @@ describe('axis zoom/pan and main plot zoom', function() {
         return Plotly.newPlot(gd, data, layout, config)
         .then(checkRanges({}, 'initial'))
         .then(function() {
-            expect(Object.keys(gd._fullLayout._plots).sort())
-                .toEqual(['xy', 'xy2', 'x2y', 'x3y3'].sort());
+            expect(Object.keys(gd._fullLayout._plots))
+                .toEqual(['xy', 'xy2', 'x2y', 'x3y3']);
 
             // nsew, n, ns, s, w, ew, e, ne, nw, se, sw
             expect(document.querySelectorAll('.drag[data-subplot="xy"]').length).toBe(11);
@@ -465,21 +374,21 @@ describe('axis zoom/pan and main plot zoom', function() {
             mouseEvent('scroll', mainDragCoords.x, mainDragCoords.y, {deltaY: 20, element: mainDrag});
         })
         .then(delay(constants.REDRAWDELAY + 10))
-        .then(checkRanges({xaxis: [-0.2103, 2], yaxis: [0, 2.2103]}, 'xy main scroll'))
+        .then(checkRanges({xaxis: [-0.4428, 2], yaxis: [0, 2.4428]}, 'xy main scroll'))
         .then(function() {
             var ewDrag = getDragger('xy', 'ew');
             var ewDragCoords = getNodeCoords(ewDrag);
             mouseEvent('scroll', ewDragCoords.x - 50, ewDragCoords.y, {deltaY: -20, element: ewDrag});
         })
         .then(delay(constants.REDRAWDELAY + 10))
-        .then(checkRanges({xaxis: [-0.1578, 1.8422], yaxis: [0, 2.2103]}, 'x scroll'))
+        .then(checkRanges({xaxis: [-0.3321, 1.6679], yaxis: [0, 2.4428]}, 'x scroll'))
         .then(function() {
             var nsDrag = getDragger('xy', 'ns');
             var nsDragCoords = getNodeCoords(nsDrag);
             mouseEvent('scroll', nsDragCoords.x, nsDragCoords.y - 50, {deltaY: -20, element: nsDrag});
         })
         .then(delay(constants.REDRAWDELAY + 10))
-        .then(checkRanges({xaxis: [-0.1578, 1.8422], yaxis: [0.1578, 2.1578]}, 'y scroll'))
+        .then(checkRanges({xaxis: [-0.3321, 1.6679], yaxis: [0.3321, 2.3321]}, 'y scroll'))
         .catch(failTest)
         .then(done);
     });
@@ -518,7 +427,7 @@ describe('axis zoom/pan and main plot zoom', function() {
             mouseEvent('scroll', mainDragCoords.x, mainDragCoords.y, {deltaY: 20, element: mainDrag});
         })
         .then(delay(constants.REDRAWDELAY + 10))
-        .then(checkRanges({xaxis: [-0.2103, 2], yaxis: [0, 2.2103], xaxis2: [-0.1052, 2.1052], yaxis2: [-0.1052, 2.1052]},
+        .then(checkRanges({xaxis: [-0.4428, 2], yaxis: [0, 2.4428], xaxis2: [-0.2214, 2.2214], yaxis2: [-0.2214, 2.2214]},
             'scroll xy'))
         .then(function() {
             var ewDrag = getDragger('xy', 'ew');
@@ -526,64 +435,7 @@ describe('axis zoom/pan and main plot zoom', function() {
             mouseEvent('scroll', ewDragCoords.x - 50, ewDragCoords.y, {deltaY: -20, element: ewDrag});
         })
         .then(delay(constants.REDRAWDELAY + 10))
-        .then(checkRanges({xaxis: [-0.1578, 1.8422], yaxis: [0.1052, 2.1052]}, 'scroll x'))
-        .catch(failTest)
-        .then(done);
-    });
-
-    it('updates linked axes when there are constraints (axes_scaleanchor mock)', function(done) {
-        var fig = Lib.extendDeep({}, require('@mocks/axes_scaleanchor.json'));
-
-        function _assert(y3rng, y4rng) {
-            expect(gd._fullLayout.yaxis3.range).toBeCloseToArray(y3rng, 2, 'y3 rng');
-            expect(gd._fullLayout.yaxis4.range).toBeCloseToArray(y4rng, 2, 'y3 rng');
-        }
-
-        Plotly.plot(gd, fig)
-        .then(function() {
-            _assert([-0.36, 4.36], [-0.36, 4.36]);
-        })
-        .then(doDrag('x2y3', 'nsew', 0, 100))
-        .then(function() {
-            _assert([-0.36, 2], [0.82, 3.18]);
-        })
-        .then(doDrag('x2y4', 'nsew', 0, 50))
-        .then(function() {
-            _assert([0.41, 1.23], [1.18, 2]);
-        })
-        .catch(failTest)
-        .then(done);
-    });
-
-    it('updates axis layout when the constraints require it', function(done) {
-        function _assert(xGridCnt) {
-            var xGrid = d3.select(gd).selectAll('.gridlayer > .x > path.xgrid');
-            expect(xGrid.size()).toEqual(xGridCnt);
-        }
-
-        Plotly.plot(gd, [{
-            x: [1, 1.5, 0, -1.5, -1, -1.5, 0, 1.5, 1],
-            y: [0, 1.5, 1, 1.5, 0, -1.5, -1, -1.5, 0],
-            line: {shape: 'spline'}
-        }], {
-            xaxis: {constrain: 'domain'},
-            yaxis: {scaleanchor: 'x'},
-            width: 700,
-            height: 500
-        })
-        .then(function() {
-            _assert(2);
-
-            return Plotly.relayout(gd, {
-                'xaxis.range[0]': 0,
-                'xaxis.range[1]': 1,
-                'yaxis.range[0]': 0,
-                'yaxis.range[1]': 1
-            });
-        })
-        .then(function() {
-            _assert(1);
-        })
+        .then(checkRanges({xaxis: [-0.3321, 1.6679], yaxis: [0.2214, 2.2214]}, 'scroll x'))
         .catch(failTest)
         .then(done);
     });
@@ -601,7 +453,7 @@ describe('Event data:', function() {
     function _hover(px, py) {
         return new Promise(function(resolve, reject) {
             gd.once('plotly_hover', function(d) {
-                Lib.clearThrottle();
+                delete gd._lastHoverTime;
                 resolve(d);
             });
 

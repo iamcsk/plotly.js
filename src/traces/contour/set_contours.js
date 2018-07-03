@@ -10,7 +10,7 @@
 'use strict';
 
 var Axes = require('../../plots/cartesian/axes');
-var Lib = require('../../lib');
+var extendFlat = require('../../lib').extendFlat;
 
 
 module.exports = function setContours(trace) {
@@ -18,13 +18,7 @@ module.exports = function setContours(trace) {
 
     // check if we need to auto-choose contour levels
     if(trace.autocontour) {
-        var zmin = trace.zmin;
-        var zmax = trace.zmax;
-        if(zmin === undefined || zmax === undefined) {
-            zmin = Lib.aggNums(Math.min, null, trace._z);
-            zmax = Lib.aggNums(Math.max, null, trace._z);
-        }
-        var dummyAx = autoContours(zmin, zmax, trace.ncontours);
+        var dummyAx = autoContours(trace.zmin, trace.zmax, trace.ncontours);
 
         contours.size = dummyAx.dtick;
 
@@ -32,8 +26,8 @@ module.exports = function setContours(trace) {
         dummyAx.range.reverse();
         contours.end = Axes.tickFirst(dummyAx);
 
-        if(contours.start === zmin) contours.start += contours.size;
-        if(contours.end === zmax) contours.end -= contours.size;
+        if(contours.start === trace.zmin) contours.start += contours.size;
+        if(contours.end === trace.zmax) contours.end -= contours.size;
 
         // if you set a small ncontours, *and* the ends are exactly on zmin/zmax
         // there's an edge case where start > end now. Make sure there's at least
@@ -46,7 +40,7 @@ module.exports = function setContours(trace) {
         // previously we copied the whole contours object back, but that had
         // other info (coloring, showlines) that should be left to supplyDefaults
         if(!trace._input.contours) trace._input.contours = {};
-        Lib.extendFlat(trace._input.contours, {
+        extendFlat(trace._input.contours, {
             start: contours.start,
             end: contours.end,
             size: contours.size

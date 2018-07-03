@@ -11,10 +11,9 @@
 var Color = require('../../../components/color');
 var axesAttrs = require('../../cartesian/layout_attributes');
 var extendFlat = require('../../../lib/extend').extendFlat;
-var overrideAll = require('../../../plot_api/edit_types').overrideAll;
 
 
-module.exports = overrideAll({
+module.exports = {
     visible: axesAttrs.visible,
     showspikes: {
         valType: 'boolean',
@@ -101,7 +100,6 @@ module.exports = overrideAll({
     exponentformat: axesAttrs.exponentformat,
     separatethousands: axesAttrs.separatethousands,
     tickformat: axesAttrs.tickformat,
-    tickformatstops: axesAttrs.tickformatstops,
     hoverformat: axesAttrs.hoverformat,
     // lines and grids
     showline: axesAttrs.showline,
@@ -114,4 +112,4 @@ module.exports = overrideAll({
     zeroline: axesAttrs.zeroline,
     zerolinecolor: axesAttrs.zerolinecolor,
     zerolinewidth: axesAttrs.zerolinewidth
-}, 'plot', 'from-root');
+};

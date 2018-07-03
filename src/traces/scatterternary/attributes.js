@@ -23,7 +23,6 @@ var scatterMarkerAttrs = scatterAttrs.marker,
 module.exports = {
     a: {
         valType: 'data_array',
-        editType: 'calc',
         description: [
             'Sets the quantity of component `a` in each data point.',
             'If `a`, `b`, and `c` are all provided, they need not be',
@@ -34,7 +33,6 @@ module.exports = {
     },
     b: {
         valType: 'data_array',
-        editType: 'calc',
         description: [
             'Sets the quantity of component `a` in each data point.',
             'If `a`, `b`, and `c` are all provided, they need not be',
@@ -45,7 +43,6 @@ module.exports = {
     },
     c: {
         valType: 'data_array',
-        editType: 'calc',
         description: [
             'Sets the quantity of component `a` in each data point.',
             'If `a`, `b`, and `c` are all provided, they need not be',
@@ -59,7 +56,6 @@ module.exports = {
         role: 'info',
         dflt: 0,
         min: 0,
-        editType: 'calc',
         description: [
             'The number each triplet should sum to,',
             'if only two of `a`, `b`, and `c` are provided.',
@@ -96,8 +92,7 @@ module.exports = {
         dash: dash,
         shape: extendFlat({}, scatterLineAttrs.shape,
             {values: ['linear', 'spline']}),
-        smoothing: scatterLineAttrs.smoothing,
-        editType: 'calc'
+        smoothing: scatterLineAttrs.smoothing
     },
     connectgaps: scatterAttrs.connectgaps,
     cliponaxis: scatterAttrs.cliponaxis,
@@ -116,7 +111,7 @@ module.exports = {
         ].join(' ')
     }),
     fillcolor: scatterAttrs.fillcolor,
-    marker: extendFlat({
+    marker: extendFlat({}, {
         symbol: scatterMarkerAttrs.symbol,
         opacity: scatterMarkerAttrs.opacity,
         maxdisplayed: scatterMarkerAttrs.maxdisplayed,
@@ -124,14 +119,11 @@ module.exports = {
         sizeref: scatterMarkerAttrs.sizeref,
         sizemin: scatterMarkerAttrs.sizemin,
         sizemode: scatterMarkerAttrs.sizemode,
-        line: extendFlat({
-            width: scatterMarkerLineAttrs.width,
-            editType: 'calc'
-        },
-            colorAttributes('marker.line')
+        line: extendFlat({},
+            {width: scatterMarkerLineAttrs.width},
+            colorAttributes('marker'.line)
         ),
-        gradient: scatterMarkerAttrs.gradient,
-        editType: 'calc'
+        gradient: scatterMarkerAttrs.gradient
     }, colorAttributes('marker'), {
         showscale: scatterMarkerAttrs.showscale,
         colorbar: colorbarAttrs
@@ -139,10 +131,6 @@ module.exports = {
 
     textfont: scatterAttrs.textfont,
     textposition: scatterAttrs.textposition,
-
-    selected: scatterAttrs.selected,
-    unselected: scatterAttrs.unselected,
-
     hoverinfo: extendFlat({}, plotAttrs.hoverinfo, {
         flags: ['a', 'b', 'c', 'text', 'name']
     }),

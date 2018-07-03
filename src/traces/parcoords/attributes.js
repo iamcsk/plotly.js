@@ -13,25 +13,48 @@ var colorbarAttrs = require('../../components/colorbar/attributes');
 var colorscales = require('../../components/colorscale/scales');
 var axesAttrs = require('../../plots/cartesian/layout_attributes');
 var fontAttrs = require('../../plots/font_attributes');
-var domainAttrs = require('../../plots/domain').attributes;
 
-var extend = require('../../lib/extend');
-var extendDeepAll = extend.extendDeepAll;
-var extendFlat = extend.extendFlat;
+var extendDeep = require('../../lib/extend').extendDeep;
+var extendFlat = require('../../lib/extend').extendFlat;
 
 module.exports = {
-    domain: domainAttrs({name: 'parcoords', trace: true, editType: 'calc'}),
 
-    labelfont: fontAttrs({
-        editType: 'calc',
+    domain: {
+        x: {
+            valType: 'info_array',
+            role: 'info',
+            items: [
+                {valType: 'number', min: 0, max: 1},
+                {valType: 'number', min: 0, max: 1}
+            ],
+            dflt: [0, 1],
+            description: [
+                'Sets the horizontal domain of this `parcoords` trace',
+                '(in plot fraction).'
+            ].join(' ')
+        },
+        y: {
+            valType: 'info_array',
+            role: 'info',
+            items: [
+                {valType: 'number', min: 0, max: 1},
+                {valType: 'number', min: 0, max: 1}
+            ],
+            dflt: [0, 1],
+            description: [
+                'Sets the vertical domain of this `parcoords` trace',
+                '(in plot fraction).'
+            ].join(' ')
+        }
+    },
+
+    labelfont: extendFlat({}, fontAttrs, {
         description: 'Sets the font for the `dimension` labels.'
     }),
-    tickfont: fontAttrs({
-        editType: 'calc',
+    tickfont: extendFlat({}, fontAttrs, {
         description: 'Sets the font for the `dimension` tick values.'
     }),
-    rangefont: fontAttrs({
-        editType: 'calc',
+    rangefont: extendFlat({}, fontAttrs, {
         description: 'Sets the font for the `dimension` range values.'
     }),
 
@@ -40,18 +63,14 @@ module.exports = {
         label: {
             valType: 'string',
             role: 'info',
-            editType: 'calc',
             description: 'The shown name of the dimension.'
         },
-        // TODO: better way to determine ordinal vs continuous axes,
-        // so users can use tickvals/ticktext with a continuous axis.
-        tickvals: extendFlat({}, axesAttrs.tickvals, {editType: 'calc'}),
-        ticktext: extendFlat({}, axesAttrs.ticktext, {editType: 'calc'}),
+        tickvals: axesAttrs.tickvals,
+        ticktext: axesAttrs.ticktext,
         tickformat: {
             valType: 'string',
             dflt: '3s',
             role: 'style',
-            editType: 'calc',
             description: [
                 'Sets the tick label formatting rule using d3 formatting mini-language',
                 'which is similar to those of Python. See',
@@ -62,17 +81,15 @@ module.exports = {
             valType: 'boolean',
             dflt: true,
             role: 'info',
-            editType: 'calc',
             description: 'Shows the dimension when set to `true` (the default). Hides the dimension for `false`.'
         },
         range: {
             valType: 'info_array',
             role: 'info',
             items: [
-                {valType: 'number', editType: 'calc'},
-                {valType: 'number', editType: 'calc'}
+                {valType: 'number'},
+                {valType: 'number'}
             ],
-            editType: 'calc',
             description: [
                 'The domain range that represents the full, shown axis extent. Defaults to the `values` extent.',
                 'Must be an array of `[fromValue, toValue]` with finite numbers as elements.'
@@ -81,60 +98,58 @@ module.exports = {
         constraintrange: {
             valType: 'info_array',
             role: 'info',
-            freeLength: true,
-            dimensions: '1-2',
             items: [
-                {valType: 'number', editType: 'calc'},
-                {valType: 'number', editType: 'calc'}
+                {valType: 'number'},
+                {valType: 'number'}
             ],
-            editType: 'calc',
             description: [
                 'The domain range to which the filter on the dimension is constrained. Must be an array',
-                'of `[fromValue, toValue]` with `fromValue <= toValue`, or if `multiselect` is not',
-                'disabled, you may give an array of arrays, where each inner array is `[fromValue, toValue]`.'
+                'of `[fromValue, toValue]` with finite numbers as elements.'
             ].join(' ')
-        },
-        multiselect: {
-            valType: 'boolean',
-            dflt: true,
-            role: 'info',
-            editType: 'calc',
-            description: 'Do we allow multiple selection ranges or just a single range?'
         },
         values: {
             valType: 'data_array',
             role: 'info',
-            editType: 'calc',
+            dflt: [],
             description: [
                 'Dimension values. `values[n]` represents the value of the `n`th point in the dataset,',
                 'therefore the `values` vector for all dimensions must be the same (longer vectors',
                 'will be truncated). Each value must be a finite number.'
             ].join(' ')
         },
-        editType: 'calc',
         description: 'The dimensions (variables) of the parallel coordinates chart. 2..60 dimensions are supported.'
     },
 
-    line: extendFlat(
-        // the default autocolorscale isn't quite usable for parcoords due to context ambiguity around 0 (grey, off-white)
+    line: extendFlat({},
 
+        // the default autocolorscale isn't quite usable for parcoords due to context ambiguity around 0 (grey, off-white)
         // autocolorscale therefore defaults to false too, to avoid being overridden by the  blue-white-red autocolor palette
-        extendDeepAll(
-            colorAttributes('line', 'calc'),
+        extendDeep(
+            {},
+            colorAttributes('line'),
             {
-                colorscale: {dflt: colorscales.Viridis},
-                autocolorscale: {
-                    dflt: false,
-                    description: [
-                        'Has an effect only if line.color` is set to a numerical array.',
-                        'Determines whether the colorscale is a default palette (`autocolorscale: true`)',
-                        'or the palette determined by `line.colorscale`.',
-                        'In case `colorscale` is unspecified or `autocolorscale` is true, the default ',
-                        'palette will be chosen according to whether numbers in the `color` array are',
-                        'all positive, all negative or mixed.',
-                        'The default value is false, so that `parcoords` colorscale can default to `Viridis`.'
-                    ].join(' ')
-                }
+                colorscale: extendDeep(
+                    {},
+                    colorAttributes('line').colorscale,
+                    {dflt: colorscales.Viridis}
+                ),
+                autocolorscale: extendDeep(
+                    {},
+                    colorAttributes('line').autocolorscale,
+                    {
+                        dflt: false,
+                        description: [
+                            'Has an effect only if line.color` is set to a numerical array.',
+                            'Determines whether the colorscale is a default palette (`autocolorscale: true`)',
+                            'or the palette determined by `line.colorscale`.',
+                            'In case `colorscale` is unspecified or `autocolorscale` is true, the default ',
+                            'palette will be chosen according to whether numbers in the `color` array are',
+                            'all positive, all negative or mixed.',
+                            'The default value is false, so that `parcoords` colorscale can default to `Viridis`.'
+                        ].join(' ')
+                    }
+                )
+
             }
         ),
 
@@ -143,14 +158,12 @@ module.exports = {
                 valType: 'boolean',
                 role: 'info',
                 dflt: false,
-                editType: 'calc',
                 description: [
                     'Has an effect only if `line.color` is set to a numerical array.',
                     'Determines whether or not a colorbar is displayed.'
                 ].join(' ')
             },
-            colorbar: colorbarAttrs,
-            editType: 'calc'
+            colorbar: colorbarAttrs
         }
     )
 };

@@ -9,25 +9,28 @@
 
 'use strict';
 
-var isArray1D = require('../../lib').isArray1D;
+var hasColumns = require('./has_columns');
+var convertColumnData = require('../heatmap/convert_column_xyz');
 
 module.exports = function handleXYDefaults(traceIn, traceOut, coerce) {
+    var cols = [];
     var x = coerce('x');
-    var hasX = x && x.length;
-    var y = coerce('y');
-    var hasY = y && y.length;
-    if(!hasX && !hasY) return false;
+
+    var needsXTransform = x && !hasColumns(x);
+    if(needsXTransform) cols.push('x');
 
     traceOut._cheater = !x;
 
-    if((!hasX || isArray1D(x)) && (!hasY || isArray1D(y))) {
-        var len = hasX ? x.length : Infinity;
-        if(hasY) len = Math.min(len, y.length);
-        if(traceOut.a && traceOut.a.length) len = Math.min(len, traceOut.a.length);
-        if(traceOut.b && traceOut.b.length) len = Math.min(len, traceOut.b.length);
-        traceOut._length = len;
+    var y = coerce('y');
+
+    var needsYTransform = y && !hasColumns(y);
+    if(needsYTransform) cols.push('y');
+
+    if(!x && !y) return;
+
+    if(cols.length) {
+        convertColumnData(traceOut, traceOut.aaxis, traceOut.baxis, 'a', 'b', cols);
     }
-    else traceOut._length = null;
 
     return true;
 };

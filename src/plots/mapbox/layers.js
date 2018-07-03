@@ -6,10 +6,12 @@
 * LICENSE file in the root directory of this source tree.
 */
 
+
 'use strict';
 
 var Lib = require('../../lib');
 var convertTextOpts = require('./convert_text_opts');
+
 
 function MapboxLayer(mapbox, index) {
     this.mapbox = mapbox;
@@ -34,27 +36,32 @@ var proto = MapboxLayer.prototype;
 
 proto.update = function update(opts) {
     if(!this.visible) {
+
         // IMPORTANT: must create source before layer to not cause errors
         this.updateSource(opts);
         this.updateLayer(opts);
-    } else if(this.needsNewSource(opts)) {
-        // IMPORTANT: must delete layer before source to not cause errors
-        this.removeLayer();
-        this.updateSource(opts);
-        this.updateLayer(opts);
-    } else if(this.needsNewLayer(opts)) {
-        this.updateLayer(opts);
-    } else {
-        this.updateStyle(opts);
     }
+    else if(this.needsNewSource(opts)) {
+
+        // IMPORTANT: must delete layer before source to not cause errors
+        this.updateLayer(opts);
+        this.updateSource(opts);
+    }
+    else if(this.needsNewLayer(opts)) {
+        this.updateLayer(opts);
+    }
+
+    this.updateStyle(opts);
 
     this.visible = isVisible(opts);
 };
 
 proto.needsNewSource = function(opts) {
+
     // for some reason changing layer to 'fill' or 'symbol'
     // w/o changing the source throws an exception in mapbox-gl 0.18 ;
     // stay safe and make new source on type changes
+
     return (
         this.sourceType !== opts.sourcetype ||
         this.source !== opts.source ||
@@ -86,40 +93,37 @@ proto.updateSource = function(opts) {
 
 proto.updateLayer = function(opts) {
     var map = this.map;
-    var convertedOpts = convertOpts(opts);
 
-    this.removeLayer();
+    if(map.getLayer(this.idLayer)) map.removeLayer(this.idLayer);
+
     this.layerType = opts.type;
 
-    if(isVisible(opts)) {
-        map.addLayer({
-            id: this.idLayer,
-            source: this.idSource,
-            'source-layer': opts.sourcelayer || '',
-            type: opts.type,
-            layout: convertedOpts.layout,
-            paint: convertedOpts.paint
-        }, opts.below);
-    }
+    if(!isVisible(opts)) return;
+
+    map.addLayer({
+        id: this.idLayer,
+        source: this.idSource,
+        'source-layer': opts.sourcelayer || '',
+        type: opts.type
+    }, opts.below);
+
+    // the only way to make a layer invisible is to remove it
+    var layoutOpts = { visibility: 'visible' };
+    this.mapbox.setOptions(this.idLayer, 'setLayoutProperty', layoutOpts);
 };
 
 proto.updateStyle = function(opts) {
+    var convertedOpts = convertOpts(opts);
+
     if(isVisible(opts)) {
-        var convertedOpts = convertOpts(opts);
         this.mapbox.setOptions(this.idLayer, 'setLayoutProperty', convertedOpts.layout);
         this.mapbox.setOptions(this.idLayer, 'setPaintProperty', convertedOpts.paint);
     }
 };
 
-proto.removeLayer = function() {
-    var map = this.map;
-    if(map.getLayer(this.idLayer)) {
-        map.removeLayer(this.idLayer);
-    }
-};
-
 proto.dispose = function dispose() {
     var map = this.map;
+
     map.removeLayer(this.idLayer);
     map.removeSource(this.idSource);
 };
@@ -194,18 +198,19 @@ function convertOpts(opts) {
 }
 
 function convertSourceOpts(opts) {
-    var sourceType = opts.sourcetype;
-    var source = opts.source;
-    var sourceOpts = {type: sourceType};
-    var field;
+    var sourceType = opts.sourcetype,
+        source = opts.source,
+        sourceOpts = { type: sourceType },
+        isSourceAString = (typeof source === 'string'),
+        field;
 
-    if(sourceType === 'geojson') {
-        field = 'data';
-    } else if(sourceType === 'vector') {
-        field = typeof source === 'string' ? 'url' : 'tiles';
+    if(sourceType === 'geojson') field = 'data';
+    else if(sourceType === 'vector') {
+        field = isSourceAString ? 'url' : 'tiles';
     }
 
     sourceOpts[field] = source;
+
     return sourceOpts;
 }
 

@@ -10,16 +10,15 @@
 
 var scatterAttrs = require('../scatter/attributes');
 var colorAttributes = require('../../components/colorscale/color_attributes');
-var baseAttrs = require('../../plots/attributes');
+var errorBarAttrs = require('../../components/errorbars/attributes');
 var DASHES = require('../../constants/gl3d_dashes');
 
 var MARKER_SYMBOLS = require('../../constants/gl3d_markers');
 var extendFlat = require('../../lib/extend').extendFlat;
-var overrideAll = require('../../plot_api/edit_types').overrideAll;
 
-var scatterLineAttrs = scatterAttrs.line;
-var scatterMarkerAttrs = scatterAttrs.marker;
-var scatterMarkerLineAttrs = scatterMarkerAttrs.line;
+var scatterLineAttrs = scatterAttrs.line,
+    scatterMarkerAttrs = scatterAttrs.marker,
+    scatterMarkerLineAttrs = scatterMarkerAttrs.line;
 
 function makeProjectionAttr(axLetter) {
     return {
@@ -54,9 +53,15 @@ function makeProjectionAttr(axLetter) {
     };
 }
 
-var attrs = module.exports = overrideAll({
-    x: scatterAttrs.x,
-    y: scatterAttrs.y,
+module.exports = {
+    x: {
+        valType: 'data_array',
+        description: 'Sets the x coordinates.'
+    },
+    y: {
+        valType: 'data_array',
+        description: 'Sets the y coordinates.'
+    },
     z: {
         valType: 'data_array',
         description: 'Sets the z coordinates.'
@@ -108,7 +113,7 @@ var attrs = module.exports = overrideAll({
         z: makeProjectionAttr('z')
     },
     connectgaps: scatterAttrs.connectgaps,
-    line: extendFlat({
+    line: extendFlat({}, {
         width: scatterLineAttrs.width,
         dash: {
             valType: 'enumerated',
@@ -129,7 +134,7 @@ var attrs = module.exports = overrideAll({
     },
         colorAttributes('line')
     ),
-    marker: extendFlat({  // Parity with scatter.js?
+    marker: extendFlat({}, {  // Parity with scatter.js?
         symbol: {
             valType: 'enumerated',
             values: Object.keys(MARKER_SYMBOLS),
@@ -156,9 +161,8 @@ var attrs = module.exports = overrideAll({
         showscale: scatterMarkerAttrs.showscale,
         colorbar: scatterMarkerAttrs.colorbar,
 
-        line: extendFlat({
-            width: extendFlat({}, scatterMarkerLineAttrs.width, {arrayOk: false})
-        },
+        line: extendFlat({},
+            {width: extendFlat({}, scatterMarkerLineAttrs.width, {arrayOk: false})},
             colorAttributes('marker.line')
         )
     },
@@ -168,7 +172,7 @@ var attrs = module.exports = overrideAll({
     textposition: extendFlat({}, scatterAttrs.textposition, {dflt: 'top center'}),
     textfont: scatterAttrs.textfont,
 
-    hoverinfo: extendFlat({}, baseAttrs.hoverinfo)
-}, 'calc', 'nested');
-
-attrs.x.editType = attrs.y.editType = attrs.z.editType = 'calc+clearAxisTypes';
+    error_x: errorBarAttrs,
+    error_y: errorBarAttrs,
+    error_z: errorBarAttrs,
+};

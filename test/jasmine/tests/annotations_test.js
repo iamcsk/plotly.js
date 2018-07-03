@@ -9,6 +9,7 @@ var HOVERMINTIME = require('@src/components/fx').constants.HOVERMINTIME;
 var DBLCLICKDELAY = require('@src/constants/interactions').DBLCLICKDELAY;
 
 var d3 = require('d3');
+var customMatchers = require('../assets/custom_matchers');
 var createGraphDiv = require('../assets/create_graph_div');
 var destroyGraphDiv = require('../assets/destroy_graph_div');
 var failTest = require('../assets/fail_test');
@@ -25,11 +26,6 @@ describe('Test annotations', function() {
         function _supply(layoutIn, layoutOut) {
             layoutOut = layoutOut || {};
             layoutOut._has = Plots._hasPlotType.bind(layoutOut);
-            layoutOut._subplots = {xaxis: ['x', 'x2'], yaxis: ['y', 'y2']};
-            ['xaxis', 'yaxis', 'xaxis2', 'yaxis2'].forEach(function(axName) {
-                if(!layoutOut[axName]) layoutOut[axName] = {type: 'linear', range: [0, 1]};
-                Axes.setConvert(layoutOut[axName]);
-            });
 
             Annotations.supplyLayoutDefaults(layoutIn, layoutOut);
 
@@ -94,6 +90,7 @@ describe('Test annotations', function() {
             var layoutOut = {
                 xaxis: { type: 'date', range: ['2000-01-01', '2016-01-01'] }
             };
+            Axes.setConvert(layoutOut.xaxis);
 
             _supply(layoutIn, layoutOut);
 
@@ -102,11 +99,6 @@ describe('Test annotations', function() {
         });
 
         it('should clean *xclick* and *yclick* values', function() {
-            var errors = [];
-            spyOn(Loggers, 'error').and.callFake(function(msg) {
-                errors.push(msg);
-            });
-
             var layoutIn = {
                 annotations: [{
                     clicktoshow: 'onoff',
@@ -136,6 +128,10 @@ describe('Test annotations', function() {
                 yaxis2: {type: 'category', range: [0, 1]}
             };
 
+            ['xaxis', 'xaxis2', 'yaxis', 'yaxis2'].forEach(function(k) {
+                Axes.setConvert(layoutOut[k]);
+            });
+
             _supply(layoutIn, layoutOut);
 
             expect(layoutOut.annotations[0]._xclick).toBe(10, 'paper x');
@@ -144,17 +140,6 @@ describe('Test annotations', function() {
             expect(layoutOut.annotations[1]._yclick).toBe(undefined, 'invalid date');
             expect(layoutOut.annotations[2]._xclick).toBe(2, 'log');
             expect(layoutOut.annotations[2]._yclick).toBe('A', 'category');
-            expect(errors.length).toBe(1);
-        });
-
-        it('should default to end for arrowside', function() {
-            var layoutIn = {
-                annotations: [{ showarrow: true, arrowhead: 2 }]
-            };
-
-            var out = _supply(layoutIn);
-
-            expect(out[0].arrowside).toEqual('end');
         });
     });
 });
@@ -576,6 +561,10 @@ describe('annotations autorange', function() {
     var mock;
     var gd;
 
+    beforeAll(function() {
+        jasmine.addMatchers(customMatchers);
+    });
+
     beforeEach(function() {
         gd = createGraphDiv();
         mock = Lib.extendDeep({}, require('@mocks/annotations-autorange.json'));
@@ -583,7 +572,7 @@ describe('annotations autorange', function() {
 
     afterEach(destroyGraphDiv);
 
-    function assertRanges(x, y, x2, y2, x3, y3, x4, y4) {
+    function assertRanges(x, y, x2, y2, x3, y3) {
         var fullLayout = gd._fullLayout;
 
         var PREC = 1;
@@ -606,8 +595,6 @@ describe('annotations autorange', function() {
         expect(fullLayout.yaxis2.range).toBeCloseToArray(y2, PRECY2, 'yaxis2');
         expect(fullLayout.xaxis3.range).toBeCloseToArray(x3, PRECX3, 'xaxis3');
         expect(fullLayout.yaxis3.range).toBeCloseToArray(y3, PREC, 'yaxis3');
-        expect(fullLayout.xaxis4.range).toBeCloseToArray(x4, PRECX2, 'xaxis4');
-        expect(fullLayout.yaxis4.range).toBeCloseToArray(y4, PRECY2, 'yaxis4');
     }
 
     function assertVisible(indices) {
@@ -631,42 +618,37 @@ describe('annotations autorange', function() {
             assertRanges(
                 [0.91, 2.09], [0.91, 2.09],
                 ['2000-11-13', '2001-04-21'], [-0.069, 3.917],
-                [0.88, 2.05], [0.92, 2.08],
-                [-1.38, 8.29], [-0.85, 5.14]
+                [0.88, 2.05], [0.92, 2.08]
             );
-            assertVisible([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
+            assertVisible([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
 
             return Plotly.relayout(gd, {
                 'annotations[0].visible': false,
                 'annotations[4].visible': false,
-                'annotations[8].visible': false,
-                'annotations[12].visible': false
+                'annotations[8].visible': false
             });
         })
         .then(function() {
             assertRanges(
                 [1.44, 2.02], [0.91, 2.09],
                 ['2001-01-18', '2001-03-27'], [-0.069, 3.917],
-                [1.44, 2.1], [0.92, 2.08],
-                [1.41, 7.42], [-0.85, 5.14]
+                [1.44, 2.1], [0.92, 2.08]
             );
-            assertVisible([1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15, 16, 17]);
+            assertVisible([1, 2, 3, 5, 6, 7, 9, 10, 11, 12, 13]);
 
             return Plotly.relayout(gd, {
                 'annotations[2].visible': false,
                 'annotations[5].visible': false,
-                'annotations[9].visible': false,
-                'annotations[13].visible': false,
+                'annotations[9].visible': false
             });
         })
         .then(function() {
             assertRanges(
                 [1.44, 2.02], [0.99, 1.52],
                 ['2001-01-31 23:59:59.999', '2001-02-01 00:00:00.001'], [-0.069, 3.917],
-                [0.5, 2.5], [0.92, 2.08],
-                [3, 5], [-0.85, 5.14]
+                [0.5, 2.5], [0.92, 2.08]
             );
-            assertVisible([1, 3, 6, 7, 10, 11, 14, 15, 16, 17]);
+            assertVisible([1, 3, 6, 7, 10, 11, 12, 13]);
 
             return Plotly.relayout(gd, {
                 'annotations[0].visible': true,
@@ -674,19 +656,16 @@ describe('annotations autorange', function() {
                 'annotations[4].visible': true,
                 'annotations[5].visible': true,
                 'annotations[8].visible': true,
-                'annotations[9].visible': true,
-                'annotations[12].visible': true,
-                'annotations[13].visible': true
+                'annotations[9].visible': true
             });
         })
         .then(function() {
             assertRanges(
                 [0.91, 2.09], [0.91, 2.09],
                 ['2000-11-13', '2001-04-21'], [-0.069, 3.917],
-                [0.88, 2.05], [0.92, 2.08],
-                [-1.38, 8.29], [-0.85, 5.14]
+                [0.88, 2.05], [0.92, 2.08]
             );
-            assertVisible([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
+            assertVisible([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
 
             // check that off-plot annotations are hidden - zoom in to
             // only one of the four on each subplot
@@ -696,20 +675,17 @@ describe('annotations autorange', function() {
                 'xaxis2.range': ['2001-01-15', '2001-02-15'],
                 'yaxis2.range': [0.9, 1.1],
                 'xaxis3.range': [1.9, 2.1],
-                'yaxis3.range': [1.4, 1.6],
-                'xaxis4.range': [3.9, 4.1],
-                'yaxis4.range': [0.9, 1.1]
+                'yaxis3.range': [1.4, 1.6]
             });
         })
         .then(function() {
             assertRanges([1.4, 1.6], [0.9, 1.1],
                 ['2001-01-15', '2001-02-15'], [0.9, 1.1],
-                [1.9, 2.1], [1.4, 1.6],
-                [3.9, 4.1], [0.9, 1.1]
+                [1.9, 2.1], [1.4, 1.6]
             );
             // only one annotation on each subplot, plus the two paper-referenced
             // are visible after zooming in
-            assertVisible([3, 7, 9, 15, 16, 17]);
+            assertVisible([3, 7, 9, 12, 13]);
         })
         .catch(failTest)
         .then(done);
@@ -721,8 +697,8 @@ describe('annotations autorange', function() {
                 text: 'LT',
                 x: -1,
                 y: 3,
-                xref: 'xq', // will be converted to 'x' and xaxis should autorange
-                yref: 'yz', // same 'y' -> yaxis
+                xref: 'x5', // will be converted to 'x' and xaxis should autorange
+                yref: 'y5', // same 'y' -> yaxis
                 ax: 50,
                 ay: 50
             }});
@@ -732,8 +708,7 @@ describe('annotations autorange', function() {
                 [-1.09, 2.25], [0.84, 3.06],
                 // the other axes shouldn't change
                 ['2000-11-13', '2001-04-21'], [-0.069, 3.917],
-                [0.88, 2.05], [0.92, 2.08],
-                [-1.38, 8.29], [-0.85, 5.14]
+                [0.88, 2.05], [0.92, 2.08]
             );
         })
         .catch(failTest)
@@ -932,6 +907,10 @@ describe('annotation effects', function() {
     function textDrag() { return gd.querySelector('.annotation-text-g>g'); }
     function arrowDrag() { return gd.querySelector('.annotation-arrow-g>.anndrag'); }
     function textBox() { return gd.querySelector('.annotation-text-g'); }
+
+    beforeAll(function() {
+        jasmine.addMatchers(customMatchers);
+    });
 
     function makePlot(annotations, config) {
         gd = createGraphDiv();
@@ -1151,72 +1130,6 @@ describe('annotation effects', function() {
         .then(done);
     });
 
-    it('works date string data-referenced with no arrow', function(done) {
-        gd = createGraphDiv();
-
-        Plotly.newPlot(gd, [{
-            x: ['2018-01-01', '2018-02-02'],
-            y: ['2017-01-03', '2017-02-04'],
-        }], {
-            annotations: [{
-                showarrow: false,
-                text: 'YO!',
-                xref: 'x',
-                yref: 'y',
-                x: '2018-02-01',
-                y: '2017-02-05'
-            }],
-            width: 500,
-            height: 500,
-            margin: {l: 100, r: 100, t: 100, b: 100, pad: 0},
-        }, {
-            editable: true
-        })
-        .then(function() {
-            return dragAndReplot(textDrag(), -20, 20);
-        })
-        .then(function() {
-            expect(gd._fullLayout.annotations[0].x).toBe('2018-01-29 13:29:41.4857');
-            expect(gd._fullLayout.annotations[0].y).toBe('2017-02-02 13:28:35.6572');
-        })
-        .catch(failTest)
-        .then(done);
-    });
-
-    it('works date sting data-referenced with arrow', function(done) {
-        gd = createGraphDiv();
-
-        Plotly.newPlot(gd, [{
-            x: ['2018-01-01', '2018-02-02'],
-            y: ['2017-01-03', '2017-02-04'],
-        }], {
-            annotations: [{
-                text: 'YO!',
-                xref: 'x',
-                yref: 'y',
-                x: '2018-02-01',
-                y: '2017-02-05'
-            }],
-            width: 500,
-            height: 500,
-            margin: {l: 100, r: 100, t: 100, b: 100, pad: 0},
-        }, {
-            editable: true
-        })
-        .then(function() {
-            return dragAndReplot(arrowDrag(), -20, 20);
-        })
-        .then(function() {
-            expect(gd._fullLayout.annotations[0].x).toBe('2018-01-29 13:29:41.4857');
-            // AJ loosened this test - expected '2017-02-02 06:36:46.8112'
-            // but when I run it I get '2017-02-02 06:28:39.9586'.
-            // must be different fonts altering autoranging
-            expect(gd._fullLayout.annotations[0].y.substr(0, 10)).toBe('2017-02-02');
-        })
-        .catch(failTest)
-        .then(done);
-    });
-
     it('should only make the clippaths it needs and delete others', function(done) {
         makePlot([
             {x: 50, y: 50, text: 'hi', width: 50, ax: 0, ay: -20},
@@ -1249,44 +1162,8 @@ describe('annotation effects', function() {
         .then(done);
     });
 
-    function _click(pos, opts) {
-        return new Promise(function(resolve) {
-            click(pos[0], pos[1], opts);
-
-            setTimeout(function() {
-                resolve();
-            }, DBLCLICKDELAY * 1.1);
-        });
-    }
-
-    var pos0Head, pos0, pos1, pos2Head, pos2, clickData;
-
-    function assertClickData(data) {
-        expect(clickData.length).toBe(data.length);
-        expect(clickData).toEqual(data);
-        clickData.splice(0, clickData.length);
-    }
-
-    function initClickTests() {
-        var gdBB = gd.getBoundingClientRect();
-        pos0Head = [gdBB.left + 200, gdBB.top + 200];
-        pos0 = [pos0Head[0], pos0Head[1] - 40];
-        pos1 = [gdBB.left + 160, gdBB.top + 340];
-        pos2Head = [gdBB.left + 340, gdBB.top + 160];
-        pos2 = [pos2Head[0], pos2Head[1] - 40];
-
-        clickData = [];
-
-        gd.on('plotly_clickannotation', function(evt) {
-            expect(evt.event).toEqual(jasmine.objectContaining({type: 'click'}));
-            evt.button = evt.event.button;
-            if(evt.event.ctrlKey) evt.ctrlKey = true;
-            delete evt.event;
-            clickData.push(evt);
-        });
-    }
-
     it('should register clicks and show hover effects on the text box only', function(done) {
+        var gdBB, pos0Head, pos0, pos1, pos2Head, pos2, clickData;
 
         function assertHoverLabel(pos, text, msg) {
             return new Promise(function(resolve) {
@@ -1327,17 +1204,44 @@ describe('annotation effects', function() {
             return p;
         }
 
+        function _click(pos) {
+            return new Promise(function(resolve) {
+                click(pos[0], pos[1]);
+
+                setTimeout(function() {
+                    resolve();
+                }, DBLCLICKDELAY * 1.1);
+            });
+        }
+
+        function assertClickData(data) {
+            expect(clickData).toEqual(data);
+            clickData.splice(0, clickData.length);
+        }
+
         makePlot([
             {x: 50, y: 50, text: 'hi', width: 50, height: 40, ax: 0, ay: -40, xshift: -50, yshift: 50},
             {x: 20, y: 20, text: 'bye', height: 40, showarrow: false},
             {x: 80, y: 80, text: 'why?', ax: 0, ay: -40}
         ], {}) // turn off the default editable: true
         .then(function() {
-            initClickTests();
+            clickData = [];
+            gd.on('plotly_clickannotation', function(evt) {
+                expect(evt.event).toEqual(jasmine.objectContaining({type: 'click'}));
+                delete evt.event;
+                clickData.push(evt);
+            });
+
+            gdBB = gd.getBoundingClientRect();
+            pos0Head = [gdBB.left + 200, gdBB.top + 200];
+            pos0 = [pos0Head[0], pos0Head[1] - 40];
+            pos1 = [gdBB.left + 160, gdBB.top + 340];
+            pos2Head = [gdBB.left + 340, gdBB.top + 160];
+            pos2 = [pos2Head[0], pos2Head[1] - 40];
 
             return assertHoverLabels([[pos0, ''], [pos1, ''], [pos2, '']]);
         })
-        // not going to register any of these because captureevents is off
+        // not going to register either of these because captureevents is off
         .then(function() { return _click(pos1); })
         .then(function() { return _click(pos2Head); })
         .then(function() {
@@ -1356,8 +1260,7 @@ describe('annotation effects', function() {
             assertClickData([{
                 index: 1,
                 annotation: gd.layout.annotations[1],
-                fullAnnotation: gd._fullLayout.annotations[1],
-                button: 0
+                fullAnnotation: gd._fullLayout.annotations[1]
             }]);
 
             expect(gd._fullLayout.annotations[0].hoverlabel).toBeUndefined();
@@ -1381,8 +1284,7 @@ describe('annotation effects', function() {
             assertClickData([{
                 index: 0,
                 annotation: gd.layout.annotations[0],
-                fullAnnotation: gd._fullLayout.annotations[0],
-                button: 0
+                fullAnnotation: gd._fullLayout.annotations[0]
             }]);
 
             return Plotly.relayout(gd, {
@@ -1408,42 +1310,6 @@ describe('annotation effects', function() {
         .then(done);
     });
 
-    // Currently annotations do *not* support right-click.
-    // TODO: if we integrated this with dragElement rather than
-    // annTextGroupInner.on('click') they could support right-click.
-    it('does not collect right-click or ctrl-click', function(done) {
-        var rightClick = {button: 2, cancelContext: true};
-        var ctrlClick = {ctrlKey: true, cancelContext: true};
-        makePlot([
-            {x: 50, y: 50, text: 'hi', width: 50, height: 40, ax: 0, ay: -40, xshift: -50, yshift: 50, hovertext: 'bananas'},
-            {x: 20, y: 20, text: 'bye', height: 40, showarrow: false, captureevents: true},
-            {x: 80, y: 80, text: 'why?', ax: 0, ay: -40, captureevents: true}
-        ], {}) // turn off the default editable: true
-        .then(initClickTests)
-        .then(function() { return _click(pos1, rightClick); })
-        .then(function() { return _click(pos2Head, rightClick); })
-        .then(function() { return _click(pos1, ctrlClick); })
-        .then(function() { return _click(pos2Head, ctrlClick); })
-        .then(function() { return _click(pos0, rightClick); })
-        .then(function() { return _click(pos0, ctrlClick); })
-        .then(function() {
-            assertClickData([]);
-
-            // sanity check that we still get left clicks
-            return _click(pos1);
-        })
-        .then(function() {
-            assertClickData([{
-                index: 1,
-                annotation: gd.layout.annotations[1],
-                fullAnnotation: gd._fullLayout.annotations[1],
-                button: 0
-            }]);
-        })
-        .catch(failTest)
-        .then(done);
-    });
-
     it('makes the whole text box a link if the link is the whole text', function(done) {
         makePlot([
             {x: 20, y: 20, text: '<a href="https://plot.ly">Plot</a>', showarrow: false},
@@ -1464,7 +1330,7 @@ describe('annotation effects', function() {
             }
 
             function checkLink(link) {
-                expect(link.node().style.cursor).toBe('pointer');
+                expect(link.style('cursor')).toBe('pointer');
                 expect(link.attr('xlink:href')).toBe('https://plot.ly');
                 expect(link.attr('xlink:show')).toBe('new');
             }
@@ -1492,7 +1358,7 @@ describe('animating annotations', function() {
 
     afterEach(destroyGraphDiv);
 
-    it('updates annotations when no axis update present', function(done) {
+    it('updates annoations when no axis update present', function(done) {
 
         function assertAnnotations(expected) {
             var texts = Plotly.d3.select(gd).selectAll('.annotation .annotation-text');
@@ -1509,7 +1375,7 @@ describe('animating annotations', function() {
             expect(expected.length).toEqual(paths.size());
 
             paths.each(function(d, i) {
-                expect(this.style.fill).toEqual(expected[i]);
+                expect(Plotly.d3.select(this).style('fill')).toEqual(expected[i]);
             });
         }
 

@@ -8,6 +8,7 @@ var createGraphDiv = require('../assets/create_graph_div');
 var destroyGraphDiv = require('../assets/destroy_graph_div');
 var mouseEvent = require('../assets/mouse_event');
 var getRectCenter = require('../assets/get_rect_center');
+var customMatchers = require('../assets/custom_matchers');
 
 // cartesian click events events use the hover data
 // from the mousemove events and then simulate
@@ -45,12 +46,15 @@ describe('Test click interactions:', function() {
 
     var mockCopy, gd;
 
-    var pointPos = [344, 216];
-    var blankPos = [63, 356];
-    var marginPos = [100, 50];
+    var pointPos = [344, 216],
+        blankPos = [63, 356];
 
-    var autoRangeX = [-3.011967491973726, 2.1561305597186564];
-    var autoRangeY = [-0.9910086301469277, 1.389382716298284];
+    var autoRangeX = [-3.011967491973726, 2.1561305597186564],
+        autoRangeY = [-0.9910086301469277, 1.389382716298284];
+
+    beforeAll(function() {
+        jasmine.addMatchers(customMatchers);
+    });
 
     beforeEach(function() {
         gd = createGraphDiv();
@@ -66,65 +70,28 @@ describe('Test click interactions:', function() {
     }
 
     describe('click events', function() {
-        var futureData, clickPassthroughs, contextPassthroughs;
+        var futureData;
 
         beforeEach(function(done) {
             Plotly.plot(gd, mockCopy.data, mockCopy.layout).then(done);
 
-            futureData = undefined;
-            clickPassthroughs = 0;
-            contextPassthroughs = 0;
-
             gd.on('plotly_click', function(data) {
                 futureData = data;
             });
-
-            gd.addEventListener('click', function() {
-                clickPassthroughs++;
-            });
-            gd.addEventListener('contextmenu', function() {
-                contextPassthroughs++;
-            });
         });
 
-        // Later we want to emit plotly events for clicking in the graph but not on data
-        // showing the axis values you clicked on. But at the moment these events
-        // pass through to event handlers attached to gd.
-        it('should not be triggered when not on data points', function() {
+        it('should not be trigged when not on data points', function() {
             click(blankPos[0], blankPos[1]);
             expect(futureData).toBe(undefined);
-            // this is a weird one - in the real case the original click never
-            // happens, it gets canceled by preventDefault in mouseup, but we
-            // add our own synthetic click.
-            // But assets/click doesn't know not to generate a click event, so
-            // here we get both. I don't see a good way to avoid this, but also
-            // there's something nice about this showing that we do indeed
-            // generate the synthetic click event.
-            // TODO: do we actually want this synthetic event, now that dragElement
-            // has `clickFn` to explicitly manage clicks too? Perhaps leave it in
-            // for now, in case either 1) users want to catch all clicks on gd, or
-            // 2) we have a component still using on('click') instead of `clickFn`
-            expect(clickPassthroughs).toBe(2);
-            expect(contextPassthroughs).toBe(0);
         });
 
-        // Margin clicks will probably always pass through to gd, right?
-        // Any reason we should handle these?
-        it('should not be triggered when in the margin', function() {
-            click(marginPos[0], marginPos[1]);
-            expect(futureData).toBe(undefined);
-            expect(clickPassthroughs).toBe(1);
-            expect(contextPassthroughs).toBe(0);
-        });
-
-        function checkPointData() {
+        it('should contain the correct fields', function() {
+            click(pointPos[0], pointPos[1]);
             expect(futureData.points.length).toEqual(1);
-            expect(clickPassthroughs).toBe(2);
-            expect(contextPassthroughs).toBe(0);
 
             var pt = futureData.points[0];
             expect(Object.keys(pt)).toEqual([
-                'data', 'fullData', 'curveNumber', 'pointNumber', 'pointIndex',
+                'data', 'fullData', 'curveNumber', 'pointNumber',
                 'x', 'y', 'xaxis', 'yaxis'
             ]);
             expect(pt.curveNumber).toEqual(0);
@@ -135,115 +102,50 @@ describe('Test click interactions:', function() {
             var evt = futureData.event;
             expect(evt.clientX).toEqual(pointPos[0]);
             expect(evt.clientY).toEqual(pointPos[1]);
-        }
+        });
+    });
+
+    describe('modified click events', function() {
+        var clickOpts = {
+                altKey: true,
+                ctrlKey: true,
+                metaKey: true,
+                shiftKey: true
+            },
+            futureData;
+
+        beforeEach(function(done) {
+            Plotly.plot(gd, mockCopy.data, mockCopy.layout).then(done);
+
+            gd.on('plotly_click', function(data) {
+                futureData = data;
+            });
+        });
+
+        it('should not be trigged when not on data points', function() {
+            click(blankPos[0], blankPos[1], clickOpts);
+            expect(futureData).toBe(undefined);
+        });
 
         it('should contain the correct fields', function() {
-            click(pointPos[0], pointPos[1]);
-            checkPointData();
-        });
+            click(pointPos[0], pointPos[1], clickOpts);
+            expect(futureData.points.length).toEqual(1);
 
-        it('should work with a sloppy click (shift < minDrag before mouseup)', function() {
-            click(pointPos[0], pointPos[1], {slop: [4, 4]});
-            checkPointData();
-        });
+            var pt = futureData.points[0];
+            expect(Object.keys(pt)).toEqual([
+                'data', 'fullData', 'curveNumber', 'pointNumber',
+                'x', 'y', 'xaxis', 'yaxis'
+            ]);
+            expect(pt.curveNumber).toEqual(0);
+            expect(pt.pointNumber).toEqual(11);
+            expect(pt.x).toEqual(0.125);
+            expect(pt.y).toEqual(2.125);
 
-        it('works with fixedrange axes', function(done) {
-            Plotly.relayout(gd, {'xaxis.fixedrange': true, 'yaxis.fixedrange': true}).then(function() {
-                click(pointPos[0], pointPos[1]);
-                expect(futureData.points.length).toEqual(1);
-                expect(clickPassthroughs).toBe(2);
-                expect(contextPassthroughs).toBe(0);
-
-                var pt = futureData.points[0];
-                expect(Object.keys(pt)).toEqual([
-                    'data', 'fullData', 'curveNumber', 'pointNumber', 'pointIndex',
-                    'x', 'y', 'xaxis', 'yaxis'
-                ]);
-                expect(pt.curveNumber).toEqual(0);
-                expect(pt.pointNumber).toEqual(11);
-                expect(pt.x).toEqual(0.125);
-                expect(pt.y).toEqual(2.125);
-
-                var evt = futureData.event;
-                expect(evt.clientX).toEqual(pointPos[0]);
-                expect(evt.clientY).toEqual(pointPos[1]);
-            })
-            .catch(fail)
-            .then(done);
-        });
-
-        var modClickOpts = {
-            altKey: true,
-            ctrlKey: true, // this makes it effectively into a right-click
-            metaKey: true,
-            shiftKey: true,
-            button: 0,
-            cancelContext: true
-        };
-        var rightClickOpts = {
-            altKey: false,
-            ctrlKey: false,
-            metaKey: false,
-            shiftKey: false,
-            button: 2,
-            cancelContext: true
-        };
-
-        [modClickOpts, rightClickOpts].forEach(function(clickOpts, i) {
-            it('should not be triggered when not on data points', function() {
-                click(blankPos[0], blankPos[1], clickOpts);
-                expect(futureData === undefined).toBe(true, i);
-                expect(clickPassthroughs).toBe(0, i);
-                expect(contextPassthroughs).toBe(0, i);
-            });
-
-            it('should not be triggered when in the margin', function() {
-                click(marginPos[0], marginPos[1], clickOpts);
-                expect(futureData === undefined).toBe(true, i);
-                expect(clickPassthroughs).toBe(0, i);
-                expect(contextPassthroughs).toBe(0, i);
-            });
-
-            it('should not be triggered if you dont cancel contextmenu', function() {
-                click(pointPos[0], pointPos[1], Lib.extendFlat({}, clickOpts, {cancelContext: false}));
-                expect(futureData === undefined).toBe(true, i);
-                expect(clickPassthroughs).toBe(0, i);
-                expect(contextPassthroughs).toBe(1, i);
-            });
-
-            // Testing the specific behavior that some users depend on
-            // See https://github.com/plotly/plotly.js/issues/2101
-            // If and only if you cancel contextmenu, by doing something like:
-            //
-            //   gd.addEventListener('contextmenu', function(e) { e.preventDefault(); })
-            //
-            // then we pass right-click on data points through to plotly_click events.
-            // Devs using this need to be aware then to check eventData.event
-            // and figure out if it had a button or ctrlKey etc.
-            it('should contain the correct fields', function() {
-                click(pointPos[0], pointPos[1], clickOpts);
-                expect(futureData.points.length).toBe(1, i);
-                expect(clickPassthroughs).toBe(0, i);
-                expect(contextPassthroughs).toBe(0, i);
-
-                var pt = futureData.points[0];
-                expect(Object.keys(pt)).toEqual([
-                    'data', 'fullData', 'curveNumber', 'pointNumber', 'pointIndex',
-                    'x', 'y', 'xaxis', 'yaxis'
-                ]);
-                expect(pt.curveNumber).toEqual(0);
-                expect(pt.pointNumber).toEqual(11);
-                expect(pt.x).toEqual(0.125);
-                expect(pt.y).toEqual(2.125);
-
-                var evt = futureData.event;
-                expect(evt.clientX).toEqual(pointPos[0]);
-                expect(evt.clientY).toEqual(pointPos[1]);
-                Object.getOwnPropertyNames(clickOpts).forEach(function(opt) {
-                    if(opt !== 'cancelContext') {
-                        expect(evt[opt]).toBe(clickOpts[opt], opt + ': ' + i);
-                    }
-                });
+            var evt = futureData.event;
+            expect(evt.clientX).toEqual(pointPos[0]);
+            expect(evt.clientY).toEqual(pointPos[1]);
+            Object.getOwnPropertyNames(clickOpts).forEach(function(opt) {
+                expect(evt[opt]).toEqual(clickOpts[opt], opt);
             });
         });
     });
@@ -311,7 +213,7 @@ describe('Test click interactions:', function() {
 
             var pt = futureData.points[0];
             expect(Object.keys(pt)).toEqual([
-                'data', 'fullData', 'curveNumber', 'pointNumber', 'pointIndex',
+                'data', 'fullData', 'curveNumber', 'pointNumber',
                 'x', 'y', 'xaxis', 'yaxis'
             ]);
             expect(pt.curveNumber).toEqual(0);
@@ -342,7 +244,7 @@ describe('Test click interactions:', function() {
 
             var pt = futureData.points[0];
             expect(Object.keys(pt)).toEqual([
-                'data', 'fullData', 'curveNumber', 'pointNumber', 'pointIndex',
+                'data', 'fullData', 'curveNumber', 'pointNumber',
                 'x', 'y', 'xaxis', 'yaxis'
             ]);
             expect(pt.curveNumber).toEqual(0);
@@ -377,7 +279,7 @@ describe('Test click interactions:', function() {
 
                 var pt = futureData.points[0];
                 expect(Object.keys(pt)).toEqual([
-                    'data', 'fullData', 'curveNumber', 'pointNumber', 'pointIndex',
+                    'data', 'fullData', 'curveNumber', 'pointNumber',
                     'x', 'y', 'xaxis', 'yaxis'
                 ]);
                 expect(pt.curveNumber).toEqual(0);
@@ -427,7 +329,9 @@ describe('Test click interactions:', function() {
             var node = document.querySelector('rect.nwdrag');
             var pos = getRectCenter(node);
 
-            expect(node).toBeClassed(['drag', 'nwdrag', 'cursor-nw-resize']);
+            expect(node.classList[0]).toBe('drag');
+            expect(node.classList[1]).toBe('nwdrag');
+            expect(node.classList[2]).toBe('cursor-nw-resize');
 
             expect(gd.layout.xaxis.range).toBeCloseToArray(autoRangeX);
             expect(gd.layout.yaxis.range).toBeCloseToArray(autoRangeY);
@@ -449,7 +353,9 @@ describe('Test click interactions:', function() {
             var node = document.querySelector('rect.nedrag');
             var pos = getRectCenter(node);
 
-            expect(node).toBeClassed(['drag', 'nedrag', 'cursor-ne-resize']);
+            expect(node.classList[0]).toBe('drag');
+            expect(node.classList[1]).toBe('nedrag');
+            expect(node.classList[2]).toBe('cursor-ne-resize');
 
             expect(gd.layout.xaxis.range).toBeCloseToArray(autoRangeX);
             expect(gd.layout.yaxis.range).toBeCloseToArray(autoRangeY);
@@ -471,7 +377,9 @@ describe('Test click interactions:', function() {
             var node = document.querySelector('rect.swdrag');
             var pos = getRectCenter(node);
 
-            expect(node).toBeClassed(['drag', 'swdrag', 'cursor-sw-resize']);
+            expect(node.classList[0]).toBe('drag');
+            expect(node.classList[1]).toBe('swdrag');
+            expect(node.classList[2]).toBe('cursor-sw-resize');
 
             expect(gd.layout.xaxis.range).toBeCloseToArray(autoRangeX);
             expect(gd.layout.yaxis.range).toBeCloseToArray(autoRangeY);
@@ -493,7 +401,9 @@ describe('Test click interactions:', function() {
             var node = document.querySelector('rect.sedrag');
             var pos = getRectCenter(node);
 
-            expect(node).toBeClassed(['drag', 'sedrag', 'cursor-se-resize']);
+            expect(node.classList[0]).toBe('drag');
+            expect(node.classList[1]).toBe('sedrag');
+            expect(node.classList[2]).toBe('cursor-se-resize');
 
             expect(gd.layout.xaxis.range).toBeCloseToArray(autoRangeX);
             expect(gd.layout.yaxis.range).toBeCloseToArray(autoRangeY);
@@ -515,7 +425,9 @@ describe('Test click interactions:', function() {
             var node = document.querySelector('rect.ewdrag');
             var pos = getRectCenter(node);
 
-            expect(node).toBeClassed(['drag', 'ewdrag', 'cursor-ew-resize']);
+            expect(node.classList[0]).toBe('drag');
+            expect(node.classList[1]).toBe('ewdrag');
+            expect(node.classList[2]).toBe('cursor-ew-resize');
 
             expect(gd.layout.xaxis.range).toBeCloseToArray(autoRangeX);
             expect(gd.layout.yaxis.range).toBeCloseToArray(autoRangeY);
@@ -537,7 +449,9 @@ describe('Test click interactions:', function() {
             var node = document.querySelector('rect.wdrag');
             var pos = getRectCenter(node);
 
-            expect(node).toBeClassed(['drag', 'wdrag', 'cursor-w-resize']);
+            expect(node.classList[0]).toBe('drag');
+            expect(node.classList[1]).toBe('wdrag');
+            expect(node.classList[2]).toBe('cursor-w-resize');
 
             expect(gd.layout.xaxis.range).toBeCloseToArray(autoRangeX);
             expect(gd.layout.yaxis.range).toBeCloseToArray(autoRangeY);
@@ -559,7 +473,9 @@ describe('Test click interactions:', function() {
             var node = document.querySelector('rect.edrag');
             var pos = getRectCenter(node);
 
-            expect(node).toBeClassed(['drag', 'edrag', 'cursor-e-resize']);
+            expect(node.classList[0]).toBe('drag');
+            expect(node.classList[1]).toBe('edrag');
+            expect(node.classList[2]).toBe('cursor-e-resize');
 
             expect(gd.layout.xaxis.range).toBeCloseToArray(autoRangeX);
             expect(gd.layout.yaxis.range).toBeCloseToArray(autoRangeY);
@@ -581,7 +497,9 @@ describe('Test click interactions:', function() {
             var node = document.querySelector('rect.nsdrag');
             var pos = getRectCenter(node);
 
-            expect(node).toBeClassed(['drag', 'nsdrag', 'cursor-ns-resize']);
+            expect(node.classList[0]).toBe('drag');
+            expect(node.classList[1]).toBe('nsdrag');
+            expect(node.classList[2]).toBe('cursor-ns-resize');
 
             expect(gd.layout.xaxis.range).toBeCloseToArray(autoRangeX);
             expect(gd.layout.yaxis.range).toBeCloseToArray(autoRangeY);
@@ -603,7 +521,9 @@ describe('Test click interactions:', function() {
             var node = document.querySelector('rect.sdrag');
             var pos = getRectCenter(node);
 
-            expect(node).toBeClassed(['drag', 'sdrag', 'cursor-s-resize']);
+            expect(node.classList[0]).toBe('drag');
+            expect(node.classList[1]).toBe('sdrag');
+            expect(node.classList[2]).toBe('cursor-s-resize');
 
             expect(gd.layout.xaxis.range).toBeCloseToArray(autoRangeX);
             expect(gd.layout.yaxis.range).toBeCloseToArray(autoRangeY);
@@ -625,7 +545,9 @@ describe('Test click interactions:', function() {
             var node = document.querySelector('rect.ndrag');
             var pos = getRectCenter(node);
 
-            expect(node).toBeClassed(['drag', 'ndrag', 'cursor-n-resize']);
+            expect(node.classList[0]).toBe('drag');
+            expect(node.classList[1]).toBe('ndrag');
+            expect(node.classList[2]).toBe('cursor-n-resize');
 
             expect(gd.layout.xaxis.range).toBeCloseToArray(autoRangeX);
             expect(gd.layout.yaxis.range).toBeCloseToArray(autoRangeY);
@@ -949,8 +871,8 @@ describe('Test click interactions:', function() {
             var translate = Drawing.getTranslate(mockEl),
                 scale = Drawing.getScale(mockEl);
 
-            expect([translate.x, translate.y]).toBeCloseToArray([13.93, 62.86]);
-            expect([scale.x, scale.y]).toBeCloseToArray([1.105, 1.105]);
+            expect([translate.x, translate.y]).toBeCloseToArray([-25.941, 43.911]);
+            expect([scale.x, scale.y]).toBeCloseToArray([1.221, 1.221]);
         });
     });
 

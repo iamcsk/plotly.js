@@ -18,11 +18,8 @@ module.exports = {
     },
 
     hasMarkers: function(trace) {
-        return trace.visible && (
-            (trace.mode && trace.mode.indexOf('markers') !== -1) ||
-            // until splom implements 'mode'
-            trace.type === 'splom'
-        );
+        return trace.visible && trace.mode &&
+            trace.mode.indexOf('markers') !== -1;
     },
 
     hasText: function(trace) {
@@ -32,6 +29,6 @@ module.exports = {
 
     isBubble: function(trace) {
         return Lib.isPlainObject(trace.marker) &&
-            Lib.isArrayOrTypedArray(trace.marker.size);
+            Array.isArray(trace.marker.size);
     }
 };

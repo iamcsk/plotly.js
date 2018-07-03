@@ -21,6 +21,7 @@ var handleFillColorDefaults = require('../scatter/fillcolor_defaults');
 
 var attributes = require('./attributes');
 
+
 module.exports = function supplyDefaults(traceIn, traceOut, defaultColor, layout) {
     function coerce(attr, dflt) {
         return Lib.coerce(traceIn, traceOut, attributes, attr, dflt);
@@ -32,16 +33,22 @@ module.exports = function supplyDefaults(traceIn, traceOut, defaultColor, layout
     traceOut.xaxis = 'x';
     traceOut.yaxis = 'y';
 
-    var a = coerce('a');
-    var b = coerce('b');
-    var len = Math.min(a.length, b.length);
+    var a = coerce('a'),
+        b = coerce('b'),
+        len;
+
+    len = Math.min(a.length, b.length);
 
     if(!len) {
         traceOut.visible = false;
         return;
     }
 
-    traceOut._length = len;
+    // cut all data arrays down to same length
+    if(a && len < a.length) traceOut.a = a.slice(0, len);
+    if(b && len < b.length) traceOut.b = b.slice(0, len);
+
+    coerce('sum');
 
     coerce('text');
 
@@ -79,6 +86,4 @@ module.exports = function supplyDefaults(traceIn, traceOut, defaultColor, layout
         dfltHoverOn.push('fills');
     }
     coerce('hoveron', dfltHoverOn.join('+') || 'points');
-
-    Lib.coerceSelectionMarkerOpacity(traceOut, coerce);
 };

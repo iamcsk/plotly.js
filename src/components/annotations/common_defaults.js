@@ -24,7 +24,7 @@ module.exports = function handleAnnotationCommonDefaults(annIn, annOut, fullLayo
     var borderWidth = coerce('borderwidth');
     var showArrow = coerce('showarrow');
 
-    coerce('text', showArrow ? ' ' : fullLayout._dfltTitle.annotation);
+    coerce('text', showArrow ? ' ' : 'new text');
     coerce('textangle');
     Lib.coerceFont(coerce, 'font', fullLayout.font);
 
@@ -35,23 +35,11 @@ module.exports = function handleAnnotationCommonDefaults(annIn, annOut, fullLayo
     if(h) coerce('valign');
 
     if(showArrow) {
-        var arrowside = coerce('arrowside');
-        var arrowhead;
-        var arrowsize;
-
-        if(arrowside.indexOf('end') !== -1) {
-            arrowhead = coerce('arrowhead');
-            arrowsize = coerce('arrowsize');
-        }
-
-        if(arrowside.indexOf('start') !== -1) {
-            coerce('startarrowhead', arrowhead);
-            coerce('startarrowsize', arrowsize);
-        }
         coerce('arrowcolor', borderOpacity ? annOut.bordercolor : Color.defaultLine);
+        coerce('arrowhead');
+        coerce('arrowsize');
         coerce('arrowwidth', ((borderOpacity && borderWidth) || 1) * 2);
         coerce('standoff');
-        coerce('startstandoff');
 
     }
 

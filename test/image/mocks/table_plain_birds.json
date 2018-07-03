@@ -25,7 +25,10 @@
 
             "align": ["right", "left", "right", "right", "left", "left", "left"],
 
-            "line": {"width": 1, "color": ["dimgray", "grey"]},
+            "line": {
+                "color": "lightgray",
+                "width": 0.0
+            },
 
             "fill": {
                 "color": ["dimgray", "grey"]

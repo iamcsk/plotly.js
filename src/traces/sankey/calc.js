@@ -10,20 +10,16 @@
 
 var tarjan = require('strongly-connected-components');
 var Lib = require('../../lib');
-var wrap = require('../../lib/gup').wrap;
 
 function circularityPresent(nodeList, sources, targets) {
 
-    var nodeLen = nodeList.length;
-    var nodes = Lib.init2dArray(nodeLen, 0);
+    var nodes = nodeList.map(function() {return [];});
 
     for(var i = 0; i < Math.min(sources.length, targets.length); i++) {
-        if(Lib.isIndex(sources[i], nodeLen) && Lib.isIndex(targets[i], nodeLen)) {
-            if(sources[i] === targets[i]) {
-                return true; // self-link which is also a scc of one
-            }
-            nodes[sources[i]].push(targets[i]);
+        if(sources[i] === targets[i]) {
+            return true; // self-link which is also a scc of one
         }
+        nodes[sources[i]].push(targets[i]);
     }
 
     var scc = tarjan(nodes);
@@ -48,8 +44,8 @@ module.exports = function calc(gd, trace) {
         trace.node.color = [];
     }
 
-    return wrap({
+    return [{
         link: trace.link,
         node: trace.node
-    });
+    }];
 };

@@ -6,14 +6,16 @@
 * LICENSE file in the root directory of this source tree.
 */
 
+
 'use strict';
 
 var d3 = require('d3');
 
+var Plotly = require('../../plotly');
 var Registry = require('../../registry');
 var Drawing = require('../../components/drawing');
 var Axes = require('./axes');
-var axisRegex = require('./constants').attrRegex;
+var axisRegex = /((x|y)([2-9]|[1-9][0-9]+)?)axis$/;
 
 module.exports = function transitionAxes(gd, newLayout, transitionOpts, makeOnCompleteCallback) {
     var fullLayout = gd._fullLayout;
@@ -27,8 +29,8 @@ module.exports = function transitionAxes(gd, newLayout, transitionOpts, makeOnCo
             attrList = ai.split('.');
             match = attrList[0].match(axisRegex);
             if(match) {
-                var axisLetter = ai.charAt(0);
-                var axisName = attrList[0];
+                var axisLetter = match[1];
+                var axisName = axisLetter + 'axis';
                 axis = fullLayout[axisName];
                 update = {};
 
@@ -125,7 +127,7 @@ module.exports = function transitionAxes(gd, newLayout, transitionOpts, makeOnCo
         activeAxIds = [xa._id, ya._id];
 
         for(i = 0; i < activeAxIds.length; i++) {
-            Axes.doTicksSingle(gd, activeAxIds[i], true);
+            Axes.doTicks(gd, activeAxIds[i], true);
         }
 
         function redrawObjs(objArray, method, shortCircuit) {
@@ -159,16 +161,17 @@ module.exports = function transitionAxes(gd, newLayout, transitionOpts, makeOnCo
             .call(Drawing.setTranslate, xa2._offset, ya2._offset)
             .call(Drawing.setScale, 1, 1);
 
-        var traceGroups = subplot.plot.selectAll('.scatterlayer .trace');
+        var scatterPoints = subplot.plot.select('.scatterlayer').selectAll('.points');
 
         // This is specifically directed at scatter traces, applying an inverse
         // scale to individual points to counteract the scale of the trace
         // as a whole:
-        traceGroups.selectAll('.point')
-            .call(Drawing.setPointGroupScale, 1, 1);
-        traceGroups.selectAll('.textpoint')
-            .call(Drawing.setTextPointsScale, 1, 1);
-        traceGroups
+        scatterPoints.selectAll('.point')
+            .call(Drawing.setPointGroupScale, 1, 1)
+            .call(Drawing.hideOutsideRangePoints, subplot);
+
+        scatterPoints.selectAll('.textpoint')
+            .call(Drawing.setTextPointsScale, 1, 1)
             .call(Drawing.hideOutsideRangePoints, subplot);
     }
 
@@ -233,18 +236,22 @@ module.exports = function transitionAxes(gd, newLayout, transitionOpts, makeOnCo
         var plotDx = xa2._offset - fracDx,
             plotDy = ya2._offset - fracDy;
 
-        subplot.clipRect
+        fullLayout._defs.select('#' + subplot.clipId + '> rect')
             .call(Drawing.setTranslate, clipDx, clipDy)
             .call(Drawing.setScale, 1 / xScaleFactor, 1 / yScaleFactor);
 
         subplot.plot
             .call(Drawing.setTranslate, plotDx, plotDy)
-            .call(Drawing.setScale, xScaleFactor, yScaleFactor);
+            .call(Drawing.setScale, xScaleFactor, yScaleFactor)
 
-        // apply an inverse scale to individual points to counteract
-        // the scale of the trace group.
-        Drawing.setPointGroupScale(subplot.zoomScalePts, 1 / xScaleFactor, 1 / yScaleFactor);
-        Drawing.setTextPointsScale(subplot.zoomScaleTxt, 1 / xScaleFactor, 1 / yScaleFactor);
+            // This is specifically directed at scatter traces, applying an inverse
+            // scale to individual points to counteract the scale of the trace
+            // as a whole:
+            .selectAll('.points').selectAll('.point')
+                .call(Drawing.setPointGroupScale, 1 / xScaleFactor, 1 / yScaleFactor);
+
+        subplot.plot.selectAll('.points').selectAll('.textpoint')
+            .call(Drawing.setTextPointsScale, 1 / xScaleFactor, 1 / yScaleFactor);
     }
 
     var onComplete;
@@ -268,7 +275,7 @@ module.exports = function transitionAxes(gd, newLayout, transitionOpts, makeOnCo
         // Signal that this transition has completed:
         onComplete && onComplete();
 
-        return Registry.call('relayout', gd, aobj).then(function() {
+        return Plotly.relayout(gd, aobj).then(function() {
             for(var i = 0; i < affectedSubplots.length; i++) {
                 unsetSubplotTransform(affectedSubplots[i]);
             }
@@ -285,7 +292,7 @@ module.exports = function transitionAxes(gd, newLayout, transitionOpts, makeOnCo
             axi.range = axi._r.slice();
         }
 
-        return Registry.call('relayout', gd, aobj).then(function() {
+        return Plotly.relayout(gd, aobj).then(function() {
             for(var i = 0; i < affectedSubplots.length; i++) {
                 unsetSubplotTransform(affectedSubplots[i]);
             }

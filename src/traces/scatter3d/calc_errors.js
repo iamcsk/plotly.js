@@ -6,14 +6,16 @@
 * LICENSE file in the root directory of this source tree.
 */
 
+
 'use strict';
 
-var Registry = require('../../registry');
+var makeComputeError = require('../../components/errorbars/compute_error');
+
 
 function calculateAxisErrors(data, params, scaleFactor) {
     if(!params || !params.visible) return null;
 
-    var computeError = Registry.getComponentMethod('errorbars', 'makeComputeError')(params);
+    var computeError = makeComputeError(params);
     var result = new Array(data.length);
 
     for(var i = 0; i < data.length; i++) {

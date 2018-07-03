@@ -1,12 +1,7 @@
-var path = require('path');
-var glob = require('glob');
-var runSeries = require('run-series');
-
 var constants = require('./util/constants');
 var common = require('./util/common');
 var _bundle = require('./util/browserify_wrapper');
-var makeSchema = require('./util/make_schema');
-var wrapLocale = require('./util/wrap_locale');
+
 /*
  * This script takes one argument
  *
@@ -31,63 +26,29 @@ if(!doesFileExist(constants.pathToCSSBuild) || !doesFileExist(constants.pathToFo
     ].join('\n'));
 }
 
-// "Browserify" the locales
-var localeGlob = path.join(constants.pathToLib, 'locales', '*.js');
-glob(localeGlob, function(err, files) {
-    files.forEach(function(file) {
-        var outName = 'plotly-locale-' + path.basename(file);
-        var outPath = path.join(constants.pathToDist, outName);
-        wrapLocale(file, outPath);
-    });
-});
-
-// list of tasks to pass to run-series to not blow up
-// memory consumption.
-var tasks = [];
-
 // Browserify plotly.js
-tasks.push(function(cb) {
-    _bundle(constants.pathToPlotlyIndex, constants.pathToPlotlyDist, {
-        standalone: 'Plotly',
-        debug: DEV,
-        compressAttrs: true,
-        packFlat: true,
-        pathToMinBundle: constants.pathToPlotlyDistMin
-    }, cb);
+_bundle(constants.pathToPlotlyIndex, constants.pathToPlotlyDist, {
+    standalone: 'Plotly',
+    debug: DEV,
+    pathToMinBundle: constants.pathToPlotlyDistMin
 });
 
 // Browserify the geo assets
-tasks.push(function(cb) {
-    _bundle(constants.pathToPlotlyGeoAssetsSrc, constants.pathToPlotlyGeoAssetsDist, {
-        standalone: 'PlotlyGeoAssets'
-    }, cb);
+_bundle(constants.pathToPlotlyGeoAssetsSrc, constants.pathToPlotlyGeoAssetsDist, {
+    standalone: 'PlotlyGeoAssets'
 });
 
 // Browserify the plotly.js with meta
-tasks.push(function(cb) {
-    _bundle(constants.pathToPlotlyIndex, constants.pathToPlotlyDistWithMeta, {
-        standalone: 'Plotly',
-        debug: DEV,
-        packFlat: true
-    }, function() {
-        makeSchema(constants.pathToPlotlyDistWithMeta, constants.pathToSchema)();
-        cb();
-    });
+_bundle(constants.pathToPlotlyIndex, constants.pathToPlotlyDistWithMeta, {
+    standalone: 'Plotly',
+    debug: DEV
 });
 
 // Browserify the plotly.js partial bundles
 constants.partialBundlePaths.forEach(function(pathObj) {
-    tasks.push(function(cb) {
-        _bundle(pathObj.index, pathObj.dist, {
-            standalone: 'Plotly',
-            debug: DEV,
-            compressAttrs: true,
-            packFlat: true,
-            pathToMinBundle: pathObj.distMin
-        }, cb);
+    _bundle(pathObj.index, pathObj.dist, {
+        standalone: 'Plotly',
+        debug: DEV,
+        pathToMinBundle: pathObj.distMin
     });
-});
-
-runSeries(tasks, function(err) {
-    if(err) throw err;
 });

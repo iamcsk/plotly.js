@@ -22,13 +22,6 @@
         background-color: rgba(140, 151, 175, 0.9);
         color: $color-bg-light;
         padding: 10px;
-
-        overflow-wrap: break-word;
-        word-wrap: break-word;
-
-        -ms-hyphens: auto;
-        -webkit-hyphens: auto;
-        hyphens: auto;
     }
 
     .notifier-close {

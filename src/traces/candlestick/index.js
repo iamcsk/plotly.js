@@ -6,13 +6,16 @@
 * LICENSE file in the root directory of this source tree.
 */
 
+
 'use strict';
+
+var register = require('../../plot_api/register');
 
 module.exports = {
     moduleType: 'trace',
     name: 'candlestick',
     basePlotModule: require('../../plots/cartesian'),
-    categories: ['cartesian', 'svg', 'showLegend', 'candlestick', 'boxLayout'],
+    categories: ['cartesian', 'showLegend', 'candlestick'],
     meta: {
         description: [
             'The candlestick is a style of financial chart describing',
@@ -30,14 +33,8 @@ module.exports = {
     },
 
     attributes: require('./attributes'),
-    layoutAttributes: require('../box/layout_attributes'),
-    supplyLayoutDefaults: require('../box/layout_defaults').supplyLayoutDefaults,
-    setPositions: require('../box/set_positions').setPositions,
     supplyDefaults: require('./defaults'),
-    calc: require('./calc'),
-    plot: require('../box/plot').plot,
-    layerName: 'boxlayer',
-    style: require('../box/style').style,
-    hoverPoints: require('../ohlc/hover'),
-    selectPoints: require('../ohlc/select')
 };
+
+register(require('../box'));
+register(require('./transform'));

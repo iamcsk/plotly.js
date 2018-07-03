@@ -11,10 +11,9 @@
 var axesAttrs = require('../../plots/cartesian/layout_attributes');
 var fontAttrs = require('../../plots/font_attributes');
 var extendFlat = require('../../lib/extend').extendFlat;
-var overrideAll = require('../../plot_api/edit_types').overrideAll;
 
 
-module.exports = overrideAll({
+module.exports = {
 // TODO: only right is supported currently
 //     orient: {
 //         valType: 'enumerated',
@@ -161,12 +160,9 @@ module.exports = overrideAll({
     tickwidth: axesAttrs.tickwidth,
     tickcolor: axesAttrs.tickcolor,
     showticklabels: axesAttrs.showticklabels,
-    tickfont: fontAttrs({
-        description: 'Sets the color bar\'s tick label font'
-    }),
+    tickfont: axesAttrs.tickfont,
     tickangle: axesAttrs.tickangle,
     tickformat: axesAttrs.tickformat,
-    tickformatstops: axesAttrs.tickformatstops,
     tickprefix: axesAttrs.tickprefix,
     showtickprefix: axesAttrs.showtickprefix,
     ticksuffix: axesAttrs.ticksuffix,
@@ -177,10 +173,13 @@ module.exports = overrideAll({
     title: {
         valType: 'string',
         role: 'info',
+        dflt: 'Click to enter colorscale title',
         description: 'Sets the title of the color bar.'
     },
-    titlefont: fontAttrs({
-        description: 'Sets this color bar\'s title font.'
+    titlefont: extendFlat({}, fontAttrs, {
+        description: [
+            'Sets this color bar\'s title font.'
+        ].join(' ')
     }),
     titleside: {
         valType: 'enumerated',
@@ -192,4 +191,4 @@ module.exports = overrideAll({
             'with respect to the color bar.'
         ].join(' ')
     }
-}, 'colorbars', 'from-root');
+};

@@ -12,11 +12,10 @@ module.exports = {
     moduleType: 'trace',
     name: 'scatterpolar',
     basePlotModule: require('../../plots/polar'),
-    categories: ['polar', 'symbols', 'showLegend', 'scatter-like'],
+    categories: ['polar', 'symbols', 'markerColorscale', 'showLegend', 'scatter-like'],
 
     attributes: require('./attributes'),
     supplyDefaults: require('./defaults'),
-    colorbar: require('../scatter/marker_colorbar'),
     calc: require('./calc'),
     plot: require('./plot'),
     style: require('../scatter/style').style,

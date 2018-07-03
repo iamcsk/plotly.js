@@ -14,16 +14,12 @@ Parcoords.attributes = require('./attributes');
 Parcoords.supplyDefaults = require('./defaults');
 Parcoords.calc = require('./calc');
 Parcoords.plot = require('./plot');
-Parcoords.colorbar = {
-    container: 'line',
-    min: 'cmin',
-    max: 'cmax'
-};
+Parcoords.colorbar = require('./colorbar');
 
 Parcoords.moduleType = 'trace';
 Parcoords.name = 'parcoords';
 Parcoords.basePlotModule = require('./base_plot');
-Parcoords.categories = ['gl', 'regl', 'noOpacity'];
+Parcoords.categories = ['gl', 'noOpacity'];
 Parcoords.meta = {
     description: [
         'Parallel coordinates for multidimensional exploratory data analysis.',

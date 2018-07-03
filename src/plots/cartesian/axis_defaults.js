@@ -6,18 +6,23 @@
 * LICENSE file in the root directory of this source tree.
 */
 
+
 'use strict';
+
+var colorMix = require('tinycolor2').mix;
 
 var Registry = require('../../registry');
 var Lib = require('../../lib');
+var lightFraction = require('../../components/color/attributes').lightFraction;
 
 var layoutAttributes = require('./layout_attributes');
 var handleTickValueDefaults = require('./tick_value_defaults');
 var handleTickMarkDefaults = require('./tick_mark_defaults');
 var handleTickLabelDefaults = require('./tick_label_defaults');
 var handleCategoryOrderDefaults = require('./category_order_defaults');
-var handleLineGridDefaults = require('./line_grid_defaults');
 var setConvert = require('./set_convert');
+var orderedCategories = require('./ordered_categories');
+
 
 /**
  * options: object containing:
@@ -32,9 +37,15 @@ var setConvert = require('./set_convert');
  *  bgColor: the plot background color, to calculate default gridline colors
  */
 module.exports = function handleAxisDefaults(containerIn, containerOut, coerce, options, layoutOut) {
-    var letter = options.letter;
-    var id = containerOut._id;
-    var font = options.font || {};
+    var letter = options.letter,
+        font = options.font || {},
+        defaultTitle = 'Click to enter ' +
+            (options.title || (letter.toUpperCase() + ' axis')) +
+            ' title';
+
+    function coerce2(attr, dflt) {
+        return Lib.coerce2(containerIn, containerOut, layoutAttributes, attr, dflt);
+    }
 
     var visible = coerce('visible', !options.cheateronly);
 
@@ -49,20 +60,15 @@ module.exports = function handleAxisDefaults(containerIn, containerOut, coerce, 
 
     var autoRange = coerce('autorange', !containerOut.isValidRange(containerIn.range));
 
-    // both x and y axes may need autorange done just for the range slider's purposes
-    // the logic is complicated to figure this out later, particularly for y axes since
-    // the settings can be spread out in the x axes... so instead we'll collect them
-    // during supplyDefaults
-    containerOut._rangesliderAutorange = false;
-
     if(autoRange) coerce('rangemode');
 
     coerce('range');
     containerOut.cleanRange();
 
-    handleCategoryOrderDefaults(containerIn, containerOut, coerce, options);
-
-    if(axType !== 'category' && !options.noHover) coerce('hoverformat');
+    handleCategoryOrderDefaults(containerIn, containerOut, coerce);
+    containerOut._initialCategories = axType === 'category' ?
+        orderedCategories(letter, containerOut.categoryorder, containerOut.categoryarray, options.data) :
+        [];
 
     if(!visible) return containerOut;
 
@@ -70,10 +76,8 @@ module.exports = function handleAxisDefaults(containerIn, containerOut, coerce, 
     // if axis.color was provided, use it for fonts too; otherwise,
     // inherit from global font color in case that was provided.
     var dfltFontColor = (dfltColor === containerIn.color) ? dfltColor : font.color;
-    // try to get default title from splom trace, fallback to graph-wide value
-    var dfltTitle = ((layoutOut._splomAxes || {})[letter] || {})[id] || layoutOut._dfltTitle[letter];
 
-    coerce('title', dfltTitle);
+    coerce('title', defaultTitle);
     Lib.coerceFont(coerce, 'titlefont', {
         family: font.family,
         size: Math.round(font.size * 1.2),
@@ -83,16 +87,35 @@ module.exports = function handleAxisDefaults(containerIn, containerOut, coerce, 
     handleTickValueDefaults(containerIn, containerOut, coerce, axType);
     handleTickLabelDefaults(containerIn, containerOut, coerce, axType, options);
     handleTickMarkDefaults(containerIn, containerOut, coerce, options);
-    handleLineGridDefaults(containerIn, containerOut, coerce, {
-        dfltColor: dfltColor,
-        bgColor: options.bgColor,
-        showGrid: options.showGrid,
-        attributes: layoutAttributes
-    });
 
-    if(containerOut.showline || containerOut.ticks) coerce('mirror');
+    var lineColor = coerce2('linecolor', dfltColor),
+        lineWidth = coerce2('linewidth'),
+        showLine = coerce('showline', !!lineColor || !!lineWidth);
 
-    if(options.automargin) coerce('automargin');
+    if(!showLine) {
+        delete containerOut.linecolor;
+        delete containerOut.linewidth;
+    }
+
+    if(showLine || containerOut.ticks) coerce('mirror');
+
+    var gridColor = coerce2('gridcolor', colorMix(dfltColor, options.bgColor, lightFraction).toRgbString()),
+        gridWidth = coerce2('gridwidth'),
+        showGridLines = coerce('showgrid', options.showGrid || !!gridColor || !!gridWidth);
+
+    if(!showGridLines) {
+        delete containerOut.gridcolor;
+        delete containerOut.gridwidth;
+    }
+
+    var zeroLineColor = coerce2('zerolinecolor', dfltColor),
+        zeroLineWidth = coerce2('zerolinewidth'),
+        showZeroLine = coerce('zeroline', options.showGrid || !!zeroLineColor || !!zeroLineWidth);
+
+    if(!showZeroLine) {
+        delete containerOut.zerolinecolor;
+        delete containerOut.zerolinewidth;
+    }
 
     return containerOut;
 };

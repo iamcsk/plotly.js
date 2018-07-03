@@ -6,6 +6,7 @@
 * LICENSE file in the root directory of this source tree.
 */
 
+
 'use strict';
 
 /** Filter out object items with visible !== true
@@ -16,30 +17,13 @@
  *
  */
 module.exports = function filterVisible(container) {
-    var filterFn = isCalcData(container) ? calcDataFilter : baseFilter;
     var out = [];
 
     for(var i = 0; i < container.length; i++) {
         var item = container[i];
-        if(filterFn(item)) out.push(item);
+
+        if(item.visible === true) out.push(item);
     }
 
     return out;
 };
-
-function baseFilter(item) {
-    return item.visible === true;
-}
-
-function calcDataFilter(item) {
-    return item[0].trace.visible === true;
-}
-
-function isCalcData(cont) {
-    return (
-        Array.isArray(cont) &&
-        Array.isArray(cont[0]) &&
-        cont[0][0] &&
-        cont[0][0].trace
-    );
-}

@@ -9,11 +9,9 @@
 
 'use strict';
 
-var overrideAll = require('../../plot_api/edit_types').overrideAll;
-
 var ContourGl = {};
 
-ContourGl.attributes = overrideAll(require('../contour/attributes'), 'calc', 'nested');
+ContourGl.attributes = require('../contour/attributes');
 ContourGl.supplyDefaults = require('../contour/defaults');
 ContourGl.colorbar = require('../contour/colorbar');
 
@@ -23,7 +21,7 @@ ContourGl.plot = require('./convert');
 ContourGl.moduleType = 'trace';
 ContourGl.name = 'contourgl';
 ContourGl.basePlotModule = require('../../plots/gl2d');
-ContourGl.categories = ['gl', 'gl2d', '2dMap'];
+ContourGl.categories = ['gl2d', '2dMap'];
 ContourGl.meta = {
     description: [
         'WebGL contour (beta)'

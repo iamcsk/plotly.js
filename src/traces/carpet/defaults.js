@@ -12,6 +12,7 @@
 var Lib = require('../../lib');
 var handleXYDefaults = require('./xy_defaults');
 var handleABDefaults = require('./ab_defaults');
+var setConvert = require('./set_convert');
 var attributes = require('./attributes');
 var colorAttrs = require('../../components/color/attributes');
 
@@ -46,12 +47,15 @@ module.exports = function supplyDefaults(traceIn, traceOut, dfltColor, fullLayou
     // corresponds to b and the second to a. This sounds backwards but ends up making sense
     // the important part to know is that when you write y[j][i], j goes from 0 to b.length - 1
     // and i goes from 0 to a.length - 1.
-    var validData = handleXYDefaults(traceIn, traceOut, coerce);
-    if(!validData) {
-        traceOut.visible = false;
-    }
+    var len = handleXYDefaults(traceIn, traceOut, coerce);
+
+    setConvert(traceOut);
 
     if(traceOut._cheater) {
         coerce('cheaterslope');
+    }
+
+    if(!len) {
+        traceOut.visible = false;
     }
 };

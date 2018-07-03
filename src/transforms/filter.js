@@ -11,12 +11,10 @@
 var Lib = require('../lib');
 var Registry = require('../registry');
 var Axes = require('../plots/cartesian/axes');
-var pointsAccessorFunction = require('./helpers').pointsAccessorFunction;
 
-var filterOps = require('../constants/filter_ops');
-var COMPARISON_OPS = filterOps.COMPARISON_OPS;
-var INTERVAL_OPS = filterOps.INTERVAL_OPS;
-var SET_OPS = filterOps.SET_OPS;
+var COMPARISON_OPS = ['=', '!=', '<', '>=', '>', '<='];
+var INTERVAL_OPS = ['[]', '()', '[)', '(]', '][', ')(', '](', ')['];
+var SET_OPS = ['{}', '}{'];
 
 exports.moduleType = 'transform';
 
@@ -26,8 +24,6 @@ exports.attributes = {
     enabled: {
         valType: 'boolean',
         dflt: true,
-        role: 'info',
-        editType: 'calc',
         description: [
             'Determines whether this filter transform is enabled or disabled.'
         ].join(' ')
@@ -38,8 +34,6 @@ exports.attributes = {
         noBlank: true,
         arrayOk: true,
         dflt: 'x',
-        role: 'info',
-        editType: 'calc',
         description: [
             'Sets the filter target by which the filter is applied.',
 
@@ -59,8 +53,6 @@ exports.attributes = {
             .concat(INTERVAL_OPS)
             .concat(SET_OPS),
         dflt: '=',
-        role: 'info',
-        editType: 'calc',
         description: [
             'Sets the filter operation.',
 
@@ -73,15 +65,15 @@ exports.attributes = {
             '*>* keeps items greater than `value`',
             '*>=* keeps items greater than or equal to `value`',
 
-            '*[]* keeps items inside `value[0]` to `value[1]` including both bounds',
-            '*()* keeps items inside `value[0]` to `value[1]` excluding both bounds',
-            '*[)* keeps items inside `value[0]` to `value[1]` including `value[0]` but excluding `value[1]',
-            '*(]* keeps items inside `value[0]` to `value[1]` excluding `value[0]` but including `value[1]',
+            '*[]* keeps items inside `value[0]` to value[1]` including both bounds`',
+            '*()* keeps items inside `value[0]` to value[1]` excluding both bounds`',
+            '*[)* keeps items inside `value[0]` to value[1]` including `value[0]` but excluding `value[1]',
+            '*(]* keeps items inside `value[0]` to value[1]` excluding `value[0]` but including `value[1]',
 
-            '*][* keeps items outside `value[0]` to `value[1]` and equal to both bounds',
-            '*)(* keeps items outside `value[0]` to `value[1]`',
-            '*](* keeps items outside `value[0]` to `value[1]` and equal to `value[0]`',
-            '*)[* keeps items outside `value[0]` to `value[1]` and equal to `value[1]`',
+            '*][* keeps items outside `value[0]` to value[1]` and equal to both bounds`',
+            '*)(* keeps items outside `value[0]` to value[1]`',
+            '*](* keeps items outside `value[0]` to value[1]` and equal to `value[0]`',
+            '*)[* keeps items outside `value[0]` to value[1]` and equal to `value[1]`',
 
             '*{}* keeps items present in a set of values',
             '*}{* keeps items not present in a set of values'
@@ -90,8 +82,6 @@ exports.attributes = {
     value: {
         valType: 'any',
         dflt: 0,
-        role: 'info',
-        editType: 'calc',
         description: [
             'Sets the value or values by which to filter.',
 
@@ -116,8 +106,6 @@ exports.attributes = {
     preservegaps: {
         valType: 'boolean',
         dflt: false,
-        role: 'info',
-        editType: 'calc',
         description: [
             'Determines whether or not gaps in data arrays produced by the filter operation',
             'are preserved.',
@@ -125,7 +113,6 @@ exports.attributes = {
             'with `connectgaps` set to *false*.'
         ].join(' ')
     },
-    editType: 'calc'
 };
 
 exports.supplyDefaults = function(transformIn) {
@@ -158,13 +145,9 @@ exports.calcTransform = function(gd, trace, opts) {
     if(!targetArray) return;
 
     var target = opts.target;
-
     var len = targetArray.length;
-    if(trace._length) len = Math.min(len, trace._length);
-
     var targetCalendar = opts.targetcalendar;
     var arrayAttrs = trace._arrayAttrs;
-    var preservegaps = opts.preservegaps;
 
     // even if you provide targetcalendar, if target is a string and there
     // is a calendar attribute matching target it will get used instead.
@@ -176,8 +159,6 @@ exports.calcTransform = function(gd, trace, opts) {
     var d2c = Axes.getDataToCoordFunc(gd, trace, target, targetArray);
     var filterFunc = getFilterFunc(opts, d2c, targetCalendar);
     var originalArrays = {};
-    var indexToPoints = {};
-    var index = 0;
 
     function forAllAttrs(fn, index) {
         for(var j = 0; j < arrayAttrs.length; j++) {
@@ -188,7 +169,7 @@ exports.calcTransform = function(gd, trace, opts) {
 
     var initFn;
     var fillFn;
-    if(preservegaps) {
+    if(opts.preservegaps) {
         initFn = function(np) {
             originalArrays[np.astr] = Lib.extendDeep([], np.get());
             np.set(new Array(len));
@@ -211,20 +192,11 @@ exports.calcTransform = function(gd, trace, opts) {
     // copy all original array attribute values, and clear arrays in trace
     forAllAttrs(initFn);
 
-    var originalPointsAccessor = pointsAccessorFunction(trace.transforms, opts);
-
     // loop through filter array, fill trace arrays if passed
     for(var i = 0; i < len; i++) {
         var passed = filterFunc(targetArray[i]);
-        if(passed) {
-            forAllAttrs(fillFn, i);
-            indexToPoints[index++] = originalPointsAccessor(i);
-        }
-        else if(preservegaps) index++;
+        if(passed) forAllAttrs(fillFn, i);
     }
-
-    opts._indexToPoints = indexToPoints;
-    trace._length = index;
 };
 
 function getFilterFunc(opts, d2c, targetCalendar) {

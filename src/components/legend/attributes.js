@@ -10,20 +10,19 @@
 
 var fontAttrs = require('../../plots/font_attributes');
 var colorAttrs = require('../color/attributes');
+var extendFlat = require('../../lib/extend').extendFlat;
 
 
 module.exports = {
     bgcolor: {
         valType: 'color',
         role: 'style',
-        editType: 'legend',
         description: 'Sets the legend background color.'
     },
     bordercolor: {
         valType: 'color',
         dflt: colorAttrs.defaultLine,
         role: 'style',
-        editType: 'legend',
         description: 'Sets the color of the border enclosing the legend.'
     },
     borderwidth: {
@@ -31,11 +30,9 @@ module.exports = {
         min: 0,
         dflt: 0,
         role: 'style',
-        editType: 'legend',
         description: 'Sets the width (in px) of the border enclosing the legend.'
     },
-    font: fontAttrs({
-        editType: 'legend',
+    font: extendFlat({}, fontAttrs, {
         description: 'Sets the font used to text the legend items.'
     }),
     orientation: {
@@ -43,7 +40,6 @@ module.exports = {
         values: ['v', 'h'],
         dflt: 'v',
         role: 'info',
-        editType: 'legend',
         description: 'Sets the orientation of the legend.'
     },
     traceorder: {
@@ -51,7 +47,6 @@ module.exports = {
         flags: ['reversed', 'grouped'],
         extras: ['normal'],
         role: 'style',
-        editType: 'legend',
         description: [
             'Determines the order at which the legend items are displayed.',
 
@@ -73,7 +68,6 @@ module.exports = {
         min: 0,
         dflt: 10,
         role: 'style',
-        editType: 'legend',
         description: [
             'Sets the amount of vertical space (in px) between legend groups.'
         ].join(' ')
@@ -84,7 +78,6 @@ module.exports = {
         max: 3,
         dflt: 1.02,
         role: 'style',
-        editType: 'legend',
         description: 'Sets the x position (in normalized coordinates) of the legend.'
     },
     xanchor: {
@@ -92,7 +85,6 @@ module.exports = {
         values: ['auto', 'left', 'center', 'right'],
         dflt: 'left',
         role: 'info',
-        editType: 'legend',
         description: [
             'Sets the legend\'s horizontal position anchor.',
             'This anchor binds the `x` position to the *left*, *center*',
@@ -105,7 +97,6 @@ module.exports = {
         max: 3,
         dflt: 1,
         role: 'style',
-        editType: 'legend',
         description: 'Sets the y position (in normalized coordinates) of the legend.'
     },
     yanchor: {
@@ -113,12 +104,10 @@ module.exports = {
         values: ['auto', 'top', 'middle', 'bottom'],
         dflt: 'auto',
         role: 'info',
-        editType: 'legend',
         description: [
             'Sets the legend\'s vertical position anchor',
             'This anchor binds the `y` position to the *top*, *middle*',
             'or *bottom* of the legend.'
         ].join(' ')
-    },
-    editType: 'legend'
+    }
 };

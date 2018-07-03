@@ -95,9 +95,6 @@
                     70
                 ]
             },
-            "center": {
-                "lat": 57
-            },
             "showrivers": true,
             "rivercolor": "#fff",
             "showlakes": true,

@@ -12,7 +12,7 @@
 var d3 = require('d3');
 var isNumeric = require('fast-isnumeric');
 
-var Loggers = require('./loggers');
+var logError = require('./loggers').error;
 var mod = require('./mod');
 
 var constants = require('../constants/numerical');
@@ -138,16 +138,7 @@ exports.dateTime2ms = function(s, calendar) {
     if(exports.isJSDate(s)) {
         // Convert to the UTC milliseconds that give the same
         // hours as this date has in the local timezone
-        var tzOffset = s.getTimezoneOffset() * ONEMIN;
-        var offsetTweak = (s.getUTCMinutes() - s.getMinutes()) * ONEMIN +
-            (s.getUTCSeconds() - s.getSeconds()) * ONESEC +
-            (s.getUTCMilliseconds() - s.getMilliseconds());
-
-        if(offsetTweak) {
-            var comb = 3 * ONEMIN;
-            tzOffset = tzOffset - comb / 2 + mod(offsetTweak - tzOffset + comb / 2, comb);
-        }
-        s = Number(s) - tzOffset;
+        s = Number(s) - s.getTimezoneOffset() * ONEMIN;
         if(s >= MIN_MS && s <= MAX_MS) return s;
         return BADNUM;
     }
@@ -349,7 +340,7 @@ exports.cleanDate = function(v, dflt, calendar) {
         // do not allow milliseconds (old) or jsdate objects (inherently
         // described as gregorian dates) with world calendars
         if(isWorldCalendar(calendar)) {
-            Loggers.error('JS Dates and milliseconds are incompatible with world calendars', v);
+            logError('JS Dates and milliseconds are incompatible with world calendars', v);
             return dflt;
         }
 
@@ -360,7 +351,7 @@ exports.cleanDate = function(v, dflt, calendar) {
         if(!v && dflt !== undefined) return dflt;
     }
     else if(!exports.isDateTime(v, calendar)) {
-        Loggers.error('unrecognized date', v);
+        logError('unrecognized date', v);
         return dflt;
     }
     return v;
@@ -376,7 +367,7 @@ exports.cleanDate = function(v, dflt, calendar) {
  * %{n}f where n is the max number of digits of fractional seconds
  */
 var fracMatch = /%\d?f/g;
-function modDateFormat(fmt, x, formatter, calendar) {
+function modDateFormat(fmt, x, calendar) {
 
     fmt = fmt.replace(fracMatch, function(match) {
         var digits = Math.min(+(match.charAt(1)) || 6, 6),
@@ -396,7 +387,7 @@ function modDateFormat(fmt, x, formatter, calendar) {
             return 'Invalid';
         }
     }
-    return formatter(fmt)(d);
+    return utcFormat(fmt)(d);
 }
 
 /*
@@ -442,6 +433,16 @@ function formatTime(x, tr) {
     return timeStr;
 }
 
+var yearFormat = utcFormat('%Y'),
+    monthFormat = utcFormat('%b %Y'),
+    dayFormat = utcFormat('%b %-d'),
+    yearMonthDayFormat = utcFormat('%b %-d, %Y');
+
+function yearFormatWorld(cDate) { return cDate.formatDate('yyyy'); }
+function monthFormatWorld(cDate) { return cDate.formatDate('M yyyy'); }
+function dayFormatWorld(cDate) { return cDate.formatDate('M d'); }
+function yearMonthDayFormatWorld(cDate) { return cDate.formatDate('M d, yyyy'); }
+
 /*
  * formatDate: turn a date into tick or hover label text.
  *
@@ -449,8 +450,6 @@ function formatTime(x, tr) {
  *   fmt: optional, an explicit format string (d3 format, even for world calendars)
  *   tr: tickround ('y', 'm', 'd', 'M', 'S', or # digits)
  *      used if no explicit fmt is provided
- *   formatter: locale-aware d3 date formatter for standard gregorian calendars
- *      should be the result of exports.getD3DateFormat(gd)
  *   calendar: optional string, the world calendar system to use
  *
  * returns the date/time as a string, potentially with the leading portion
@@ -459,21 +458,49 @@ function formatTime(x, tr) {
  * the axis may choose to strip things after it when they don't change from
  * one tick to the next (as it does with automatic formatting)
  */
-exports.formatDate = function(x, fmt, tr, formatter, calendar, extraFormat) {
+exports.formatDate = function(x, fmt, tr, calendar) {
+    var headStr,
+        dateStr;
+
     calendar = isWorldCalendar(calendar) && calendar;
 
-    if(!fmt) {
-        if(tr === 'y') fmt = extraFormat.year;
-        else if(tr === 'm') fmt = extraFormat.month;
+    if(fmt) return modDateFormat(fmt, x, calendar);
+
+    if(calendar) {
+        try {
+            var dateJD = Math.floor((x + 0.05) / ONEDAY) + EPOCHJD,
+                cDate = Registry.getComponentMethod('calendars', 'getCal')(calendar)
+                    .fromJD(dateJD);
+
+            if(tr === 'y') dateStr = yearFormatWorld(cDate);
+            else if(tr === 'm') dateStr = monthFormatWorld(cDate);
+            else if(tr === 'd') {
+                headStr = yearFormatWorld(cDate);
+                dateStr = dayFormatWorld(cDate);
+            }
+            else {
+                headStr = yearMonthDayFormatWorld(cDate);
+                dateStr = formatTime(x, tr);
+            }
+        }
+        catch(e) { return 'Invalid'; }
+    }
+    else {
+        var d = new Date(Math.floor(x + 0.05));
+
+        if(tr === 'y') dateStr = yearFormat(d);
+        else if(tr === 'm') dateStr = monthFormat(d);
         else if(tr === 'd') {
-            fmt = extraFormat.dayMonth + '\n' + extraFormat.year;
+            headStr = yearFormat(d);
+            dateStr = dayFormat(d);
         }
         else {
-            return formatTime(x, tr) + '\n' + modDateFormat(extraFormat.dayMonthYear, x, formatter, calendar);
+            headStr = yearMonthDayFormat(d);
+            dateStr = formatTime(x, tr);
         }
     }
 
-    return modDateFormat(fmt, x, formatter, calendar);
+    return dateStr + (headStr ? '\n' + headStr : '');
 };
 
 /*
@@ -524,7 +551,7 @@ exports.incrementMonth = function(ms, dMonth, calendar) {
             return (cDate.toJD() - EPOCHJD) * ONEDAY + timeMs;
         }
         catch(e) {
-            Loggers.error('invalid ms ' + ms + ' in calendar ' + calendar);
+            logError('invalid ms ' + ms + ' in calendar ' + calendar);
             // then keep going in gregorian even though the result will be 'Invalid'
         }
     }

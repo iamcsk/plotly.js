@@ -30,26 +30,18 @@ module.exports = function makeComputeError(opts) {
         symmetric = opts.symmetric;
 
     if(type === 'data') {
-        var array = opts.array || [];
+        var array = opts.array,
+            arrayminus = opts.arrayminus;
 
-        if(symmetric) {
+        if(symmetric || arrayminus === undefined) {
             return function computeError(dataPt, index) {
                 var val = +(array[index]);
                 return [val, val];
             };
         }
         else {
-            var arrayminus = opts.arrayminus || [];
             return function computeError(dataPt, index) {
-                var val = +array[index];
-                var valMinus = +arrayminus[index];
-                // in case one is present and the other is missing, fill in 0
-                // so we still see the present one. Mostly useful during manual
-                // data entry.
-                if(!isNaN(val) || !isNaN(valMinus)) {
-                    return [valMinus || 0, val || 0];
-                }
-                return [NaN, NaN];
+                return [+arrayminus[index], +array[index]];
             };
         }
     }

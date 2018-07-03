@@ -8,6 +8,7 @@
 
 'use strict';
 
+var Plotly = require('../../plotly');
 var Lib = require('../../lib');
 var Registry = require('../../registry');
 
@@ -111,7 +112,7 @@ module.exports = function handleClick(g, gd, numClicks) {
             }
         }
 
-        Registry.call('relayout', gd, 'hiddenlabels', hiddenSlices);
+        Plotly.relayout(gd, 'hiddenlabels', hiddenSlices);
     } else {
         var hasLegendgroup = legendgroup && legendgroup.length;
         var traceIndicesInGroup = [];
@@ -217,6 +218,6 @@ module.exports = function handleClick(g, gd, numClicks) {
             }
         }
 
-        Registry.call('restyle', gd, attrUpdate, attrIndices);
+        Plotly.restyle(gd, attrUpdate, attrIndices);
     }
 };

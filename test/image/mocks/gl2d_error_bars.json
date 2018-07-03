@@ -1,16 +1,6 @@
 {
     "data": [
         {
-            "x": [6],
-            "y": ["2"],
-            "error_y": {
-                "type": "data",
-                "array": [2],
-                "arrayminus": [4]
-            },
-            "type": "scattergl"
-        },
-        {
             "x": [
                 0,
                 1,
@@ -100,19 +90,6 @@
             "error_x": {
                 "type": "percent",
                 "value": 10
-            },
-            "type": "scattergl"
-        },
-        {
-            "y": [
-                3,
-                3,
-                6,
-                5
-            ],
-            "error_x": {
-                "type": "constant",
-                "value": 0.1
             },
             "type": "scattergl"
         }

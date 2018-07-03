@@ -16,8 +16,7 @@ module.exports = function supplyLayoutDefaults(layoutIn, layoutOut, fullData) {
         return Lib.coerce(layoutIn, layoutOut, layoutAttributes, attr, dflt);
     }
 
-    var dragMode = coerce('dragmode');
-    if(dragMode === 'select') coerce('selectdirection');
+    coerce('dragmode');
 
     var hovermodeDflt;
     if(layoutOut._has('cartesian')) {
@@ -28,23 +27,13 @@ module.exports = function supplyLayoutDefaults(layoutIn, layoutOut, fullData) {
     }
     else hovermodeDflt = 'closest';
 
-    var hoverMode = coerce('hovermode', hovermodeDflt);
-    if(hoverMode) {
-        coerce('hoverdistance');
-        coerce('spikedistance');
-    }
+    coerce('hovermode', hovermodeDflt);
 
-    // if only mapbox or geo subplots is present on graph,
+    // if only mapbox subplots is present on graph,
     // reset 'zoom' dragmode to 'pan' until 'zoom' is implemented,
     // so that the correct modebar button is active
-    var hasMapbox = layoutOut._has('mapbox');
-    var hasGeo = layoutOut._has('geo');
-    var len = layoutOut._basePlotModules.length;
-
-    if(layoutOut.dragmode === 'zoom' && (
-        ((hasMapbox || hasGeo) && len === 1) ||
-        (hasMapbox && hasGeo && len === 2)
-    )) {
+    if(layoutOut._has('mapbox') && layoutOut._basePlotModules.length === 1 &&
+       layoutOut.dragmode === 'zoom') {
         layoutOut.dragmode = 'pan';
     }
 };

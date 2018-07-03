@@ -49,8 +49,7 @@
         "value":[
           400,
           540
-        ],
-        "showlabels": true
+        ]
       },
       "line": {
         "smoothing": 0
@@ -84,8 +83,7 @@
         "operation":"<",
         "value":[
           0.5
-        ],
-        "showlabels": true
+        ]
       },
       "line": {
         "smoothing": 0
@@ -117,8 +115,7 @@
       "contours":{
         "type":"constraint",
         "operation":">",
-        "value":810,
-        "showlabels": true
+        "value":810
       },
       "colorscale":[
         [ 0, "green" ],

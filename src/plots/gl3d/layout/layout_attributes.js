@@ -10,45 +10,38 @@
 'use strict';
 
 var gl3dAxisAttrs = require('./axis_attributes');
-var domainAttrs = require('../../domain').attributes;
 var extendFlat = require('../../../lib/extend').extendFlat;
-var counterRegex = require('../../../lib').counterRegex;
 
-function makeCameraVector(x, y, z) {
+function makeVector(x, y, z) {
     return {
         x: {
             valType: 'number',
             role: 'info',
-            dflt: x,
-            editType: 'camera'
+            dflt: x
         },
         y: {
             valType: 'number',
             role: 'info',
-            dflt: y,
-            editType: 'camera'
+            dflt: y
         },
         z: {
             valType: 'number',
             role: 'info',
-            dflt: z,
-            editType: 'camera'
-        },
-        editType: 'camera'
+            dflt: z
+        }
     };
 }
 
 module.exports = {
-    _arrayAttrRegexps: [counterRegex('scene', '.annotations', true)],
+    _arrayAttrRegexps: [/^scene([2-9]|[1-9][0-9]+)?\.annotations/],
 
     bgcolor: {
         valType: 'color',
         role: 'style',
-        dflt: 'rgba(0,0,0,0)',
-        editType: 'plot'
+        dflt: 'rgba(0,0,0,0)'
     },
     camera: {
-        up: extendFlat(makeCameraVector(0, 0, 1), {
+        up: extendFlat(makeVector(0, 0, 1), {
             description: [
                 'Sets the (x,y,z) components of the \'up\' camera vector.',
                 'This vector determines the up direction of this scene',
@@ -57,7 +50,7 @@ module.exports = {
                 'the z axis points up.'
             ].join(' ')
         }),
-        center: extendFlat(makeCameraVector(0, 0, 0), {
+        center: extendFlat(makeVector(0, 0, 0), {
             description: [
                 'Sets the (x,y,z) components of the \'center\' camera vector',
                 'This vector determines the translation (x,y,z) space',
@@ -65,27 +58,47 @@ module.exports = {
                 'By default, there is no such translation.'
             ].join(' ')
         }),
-        eye: extendFlat(makeCameraVector(1.25, 1.25, 1.25), {
+        eye: extendFlat(makeVector(1.25, 1.25, 1.25), {
             description: [
                 'Sets the (x,y,z) components of the \'eye\' camera vector.',
                 'This vector determines the view point about the origin',
                 'of this scene.'
             ].join(' ')
-        }),
-        editType: 'camera'
+        })
     },
-    domain: domainAttrs({name: 'scene', editType: 'plot'}),
+    domain: {
+        x: {
+            valType: 'info_array',
+            role: 'info',
+            items: [
+                {valType: 'number', min: 0, max: 1},
+                {valType: 'number', min: 0, max: 1}
+            ],
+            dflt: [0, 1],
+            description: [
+                'Sets the horizontal domain of this scene',
+                '(in plot fraction).'
+            ].join(' ')
+        },
+        y: {
+            valType: 'info_array',
+            role: 'info',
+            items: [
+                {valType: 'number', min: 0, max: 1},
+                {valType: 'number', min: 0, max: 1}
+            ],
+            dflt: [0, 1],
+            description: [
+                'Sets the vertical domain of this scene',
+                '(in plot fraction).'
+            ].join(' ')
+        }
+    },
     aspectmode: {
         valType: 'enumerated',
         role: 'info',
         values: ['auto', 'cube', 'data', 'manual'],
         dflt: 'auto',
-        editType: 'plot',
-        impliedEdits: {
-            'aspectratio.x': undefined,
-            'aspectratio.y': undefined,
-            'aspectratio.z': undefined
-        },
         description: [
             'If *cube*, this scene\'s axes are drawn as a cube,',
             'regardless of the axes\' ranges.',
@@ -107,26 +120,18 @@ module.exports = {
         x: {
             valType: 'number',
             role: 'info',
-            min: 0,
-            editType: 'plot',
-            impliedEdits: {'^aspectmode': 'manual'}
+            min: 0
         },
         y: {
             valType: 'number',
             role: 'info',
-            min: 0,
-            editType: 'plot',
-            impliedEdits: {'^aspectmode': 'manual'}
+            min: 0
         },
         z: {
             valType: 'number',
             role: 'info',
-            min: 0,
-            editType: 'plot',
-            impliedEdits: {'^aspectmode': 'manual'}
+            min: 0
         },
-        editType: 'plot',
-        impliedEdits: {aspectmode: 'manual'},
         description: [
             'Sets this scene\'s axis aspectratio.'
         ].join(' ')
@@ -141,7 +146,6 @@ module.exports = {
         role: 'info',
         values: ['orbit', 'turntable', 'zoom', 'pan', false],
         dflt: 'turntable',
-        editType: 'plot',
         description: [
             'Determines the mode of drag interactions for this scene.'
         ].join(' ')
@@ -151,18 +155,15 @@ module.exports = {
         role: 'info',
         values: ['closest', false],
         dflt: 'closest',
-        editType: 'modebar',
         description: [
             'Determines the mode of hover interactions for this scene.'
         ].join(' ')
     },
-    editType: 'plot',
 
     _deprecated: {
         cameraposition: {
             valType: 'info_array',
             role: 'info',
-            editType: 'camera',
             description: 'Obsolete. Use `camera` instead.'
         }
     }

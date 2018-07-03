@@ -13,37 +13,29 @@ var map1dArray = require('../carpet/map_1d_array');
 var makepath = require('../carpet/makepath');
 var Drawing = require('../../components/drawing');
 var Lib = require('../../lib');
-var getUidsFromCalcData = require('../../plots/get_data').getUidsFromCalcData;
 
 var makeCrossings = require('../contour/make_crossings');
 var findAllPaths = require('../contour/find_all_paths');
 var contourPlot = require('../contour/plot');
 var constants = require('../contour/constants');
-var convertToConstraints = require('../contour/convert_to_constraints');
+var convertToConstraints = require('./convert_to_constraints');
 var joinAllPaths = require('./join_all_paths');
-var emptyPathinfo = require('../contour/empty_pathinfo');
+var emptyPathinfo = require('./empty_pathinfo');
 var mapPathinfo = require('./map_pathinfo');
 var lookupCarpet = require('../carpet/lookup_carpetid');
-var closeBoundaries = require('../contour/close_boundaries');
+var closeBoundaries = require('./close_boundaries');
 
-module.exports = function plot(gd, plotinfo, cdcontours, contourcarpetLayer) {
-    var uidLookup = getUidsFromCalcData(cdcontours);
 
-    contourcarpetLayer.selectAll('g.contour').each(function(d) {
-        if(!uidLookup[d.trace.uid]) {
-            d3.select(this).remove();
-        }
-    });
-
+module.exports = function plot(gd, plotinfo, cdcontours) {
     for(var i = 0; i < cdcontours.length; i++) {
-        plotOne(gd, plotinfo, cdcontours[i], contourcarpetLayer);
+        plotOne(gd, plotinfo, cdcontours[i]);
     }
 };
 
-function plotOne(gd, plotinfo, cd, contourcarpetLayer) {
+function plotOne(gd, plotinfo, cd) {
     var trace = cd[0].trace;
 
-    var carpet = trace._carpetTrace = lookupCarpet(gd, trace);
+    var carpet = trace.carpetTrace = lookupCarpet(gd, trace);
     var carpetcd = gd.calcdata[carpet.index][0];
 
     if(!carpet.visible || carpet.visible === 'legendonly') return;
@@ -54,16 +46,20 @@ function plotOne(gd, plotinfo, cd, contourcarpetLayer) {
     var uid = trace.uid;
     var xa = plotinfo.xaxis;
     var ya = plotinfo.yaxis;
+    var fullLayout = gd._fullLayout;
     var id = 'contour' + uid;
     var pathinfo = emptyPathinfo(contours, plotinfo, cd[0]);
-    var isConstraint = contours.type === 'constraint';
-    var operation = contours._operation;
-    var coloring = isConstraint ? (operation === '=' ? 'lines' : 'fill') : contours.coloring;
+    var isConstraint = trace.contours.type === 'constraint';
 
     // Map [a, b] (data) --> [i, j] (pixels)
     function ab2p(ab) {
         var pt = carpet.ab2xy(ab[0], ab[1], true);
         return [xa.c2p(pt[0]), ya.c2p(pt[1])];
+    }
+
+    if(trace.visible !== true) {
+        fullLayout._infolayer.selectAll('.cb' + uid).remove();
+        return;
     }
 
     // Define the perimeter in a/b coordinates:
@@ -88,17 +84,16 @@ function plotOne(gd, plotinfo, cd, contourcarpetLayer) {
     // TODO: Perhaps this should be generalized and *all* paths should be drawn as
     // closed regions so that translucent contour levels would be valid.
     // See: https://github.com/plotly/plotly.js/issues/1356
-    var fillPathinfo = pathinfo;
-    if(contours.type === 'constraint') {
-        fillPathinfo = convertToConstraints(pathinfo, operation);
-        closeBoundaries(fillPathinfo, operation, perimeter, trace);
+    if(trace.contours.type === 'constraint') {
+        convertToConstraints(pathinfo, trace.contours.operation);
+        closeBoundaries(pathinfo, trace.contours.operation, perimeter, trace);
     }
 
     // Map the paths in a/b coordinates to pixel coordinates:
     mapPathinfo(pathinfo, ab2p);
 
     // draw everything
-    var plotGroup = contourPlot.makeContourGroup(contourcarpetLayer, cd, id);
+    var plotGroup = contourPlot.makeContourGroup(plotinfo, cd, id);
 
     // Compute the boundary path
     var seg, xp, yp, i;
@@ -116,12 +111,12 @@ function plotOne(gd, plotinfo, cd, contourcarpetLayer) {
 
     // Draw the baseline background fill that fills in the space behind any other
     // contour levels:
-    makeBackground(plotGroup, carpetcd.clipsegments, xa, ya, isConstraint, coloring);
+    makeBackground(plotGroup, carpetcd.clipsegments, xa, ya, isConstraint, contours.coloring);
 
     // Draw the specific contour fills. As a simplification, they're assumed to be
     // fully opaque so that it's easy to draw them simply overlapping. The alternative
     // would be to flip adjacent paths and draw closed paths for each level instead.
-    makeFills(trace, plotGroup, xa, ya, fillPathinfo, perimeter, ab2p, carpet, carpetcd, coloring, boundaryPath);
+    makeFills(trace, plotGroup, xa, ya, pathinfo, perimeter, ab2p, carpet, carpetcd, contours.coloring, boundaryPath);
 
     // Draw contour lines:
     makeLinesAndLabels(plotGroup, pathinfo, gd, cd[0], contours, plotinfo, carpet);
@@ -131,7 +126,11 @@ function plotOne(gd, plotinfo, cd, contourcarpetLayer) {
 }
 
 function makeLinesAndLabels(plotgroup, pathinfo, gd, cd0, contours, plotinfo, carpet) {
-    var lineContainer = Lib.ensureSingle(plotgroup, 'g', 'contourlines');
+    var lineContainer = plotgroup.selectAll('g.contourlines').data([0]);
+
+    lineContainer.enter().append('g')
+        .classed('contourlines', true);
+
     var showLines = contours.showlines !== false;
     var showLabels = contours.showlabels;
     var clipLinesForLabels = showLines && showLabels;
@@ -296,7 +295,8 @@ function vectorTan(v0, v1) {
 
 function makeBackground(plotgroup, clipsegments, xaxis, yaxis, isConstraint, coloring) {
     var seg, xp, yp, i;
-    var bggroup = Lib.ensureSingle(plotgroup, 'g', 'contourbg');
+    var bggroup = plotgroup.selectAll('g.contourbg').data([0]);
+    bggroup.enter().append('g').classed('contourbg', true);
 
     var bgfill = bggroup.selectAll('path')
         .data((coloring === 'fill' && !isConstraint) ? [0] : []);
@@ -317,7 +317,10 @@ function makeBackground(plotgroup, clipsegments, xaxis, yaxis, isConstraint, col
 }
 
 function makeFills(trace, plotgroup, xa, ya, pathinfo, perimeter, ab2p, carpet, carpetcd, coloring, boundaryPath) {
-    var fillgroup = Lib.ensureSingle(plotgroup, 'g', 'contourfill');
+    var fillgroup = plotgroup.selectAll('g.contourfill')
+        .data([0]);
+    fillgroup.enter().append('g')
+        .classed('contourfill', true);
 
     var fillitems = fillgroup.selectAll('path')
         .data(coloring === 'fill' ? pathinfo : []);

@@ -10,66 +10,41 @@
 'use strict';
 
 var d3 = require('d3');
-var Lib = require('../../lib');
 
-var radians = Math.PI / 180;
-var degrees = 180 / Math.PI;
-var zoomstartStyle = {cursor: 'pointer'};
-var zoomendStyle = {cursor: 'auto'};
+var radians = Math.PI / 180,
+    degrees = 180 / Math.PI,
+    zoomstartStyle = { cursor: 'pointer' },
+    zoomendStyle = { cursor: 'auto' };
+
 
 function createGeoZoom(geo, geoLayout) {
-    var projection = geo.projection;
     var zoomConstructor;
 
-    if(geoLayout._isScoped) {
-        zoomConstructor = zoomScoped;
-    } else if(geoLayout._isClipped) {
-        zoomConstructor = zoomClipped;
-    } else {
-        zoomConstructor = zoomNonClipped;
-    }
+    if(geoLayout._isScoped) zoomConstructor = zoomScoped;
+    else if(geoLayout._clipAngle) zoomConstructor = zoomClipped;
+    else zoomConstructor = zoomNonClipped;
 
     // TODO add a conic-specific zoom
 
-    return zoomConstructor(geo, projection);
+    return zoomConstructor(geo, geoLayout.projection);
 }
 
 module.exports = createGeoZoom;
 
 // common to all zoom types
-function initZoom(geo, projection) {
+function initZoom(projection, projLayout) {
+    var fullScale = projLayout._fullScale;
+
     return d3.behavior.zoom()
         .translate(projection.translate())
-        .scale(projection.scale());
-}
-
-// sync zoom updates with user & full layout
-function sync(geo, projection, cb) {
-    var id = geo.id;
-    var gd = geo.graphDiv;
-    var userOpts = gd.layout[id];
-    var fullOpts = gd._fullLayout[id];
-
-    var eventData = {};
-
-    function set(propStr, val) {
-        var fullNp = Lib.nestedProperty(fullOpts, propStr);
-
-        if(fullNp.get() !== val) {
-            fullNp.set(val);
-            Lib.nestedProperty(userOpts, propStr).set(val);
-            eventData[id + '.' + propStr] = val;
-        }
-    }
-
-    cb(set);
-    set('projection.scale', projection.scale() / geo.fitScale);
-    gd.emit('plotly_relayout', eventData);
+        .scale(projection.scale())
+        .scaleExtent([0.5 * fullScale, 100 * fullScale]);
 }
 
 // zoom for scoped projections
-function zoomScoped(geo, projection) {
-    var zoom = initZoom(geo, projection);
+function zoomScoped(geo, projLayout) {
+    var projection = geo.projection,
+        zoom = initZoom(projection, projLayout);
 
     function handleZoomstart() {
         d3.select(this).style(zoomstartStyle);
@@ -79,19 +54,12 @@ function zoomScoped(geo, projection) {
         projection
             .scale(d3.event.scale)
             .translate(d3.event.translate);
+
         geo.render();
-    }
-
-    function syncCb(set) {
-        var center = projection.invert(geo.midPt);
-
-        set('center.lon', center[0]);
-        set('center.lat', center[1]);
     }
 
     function handleZoomend() {
         d3.select(this).style(zoomendStyle);
-        sync(geo, projection, syncCb);
     }
 
     zoom
@@ -103,8 +71,9 @@ function zoomScoped(geo, projection) {
 }
 
 // zoom for non-clipped projections
-function zoomNonClipped(geo, projection) {
-    var zoom = initZoom(geo, projection);
+function zoomNonClipped(geo, projLayout) {
+    var projection = geo.projection,
+        zoom = initZoom(projection, projLayout);
 
     var INSIDETOLORANCEPXS = 2;
 
@@ -139,6 +108,7 @@ function zoomNonClipped(geo, projection) {
         }
 
         projection.scale(d3.event.scale);
+
         projection.translate([translate0[0], d3.event.translate[1]]);
 
         if(!zoomPoint) {
@@ -157,16 +127,10 @@ function zoomNonClipped(geo, projection) {
 
     function handleZoomend() {
         d3.select(this).style(zoomendStyle);
-        sync(geo, projection, syncCb);
-    }
 
-    function syncCb(set) {
-        var rotate = projection.rotate();
-        var center = projection.invert(geo.midPt);
-
-        set('projection.rotation.lon', -rotate[0]);
-        set('center.lon', center[0]);
-        set('center.lat', center[1]);
+        // or something like
+        // http://www.jasondavies.com/maps/gilbert/
+        // ... a little harder with multiple base layers
     }
 
     zoom
@@ -179,9 +143,10 @@ function zoomNonClipped(geo, projection) {
 
 // zoom for clipped projections
 // inspired by https://www.jasondavies.com/maps/d3.geo.zoom.js
-function zoomClipped(geo, projection) {
-    var view = {r: projection.rotate(), k: projection.scale()},
-        zoom = initZoom(geo, projection),
+function zoomClipped(geo, projLayout) {
+    var projection = geo.projection,
+        view = {r: projection.rotate(), k: projection.scale()},
+        zoom = initZoom(projection, projLayout),
         event = d3_eventDispatch(zoom, 'zoomstart', 'zoom', 'zoomend'),
         zooming = 0,
         zoomOn = zoom.on;
@@ -214,6 +179,7 @@ function zoomClipped(geo, projection) {
             // if not, don't do anything new but scale
             // if it is, then we can assume between will exist below
             // so we don't need the 'bank' function, whatever that is.
+            // TODO: is this right?
             else if(position(projection, mouse1)) {
                 // go back to original projection temporarily
                 // except for scale... that's kind of independent?
@@ -246,7 +212,6 @@ function zoomClipped(geo, projection) {
         d3.select(this).style(zoomendStyle);
         zoomOn.call(zoom, 'zoom', null);
         zoomended(event.of(this, arguments));
-        sync(geo, projection, syncCb);
     })
     .on('zoom.redraw', function() {
         geo.render();
@@ -262,12 +227,6 @@ function zoomClipped(geo, projection) {
 
     function zoomended(dispatch) {
         if(!--zooming) dispatch({type: 'zoomend'});
-    }
-
-    function syncCb(set) {
-        var _rotate = projection.rotate();
-        set('projection.rotation.lon', -_rotate[0]);
-        set('projection.rotation.lat', -_rotate[1]);
     }
 
     return d3.rebind(zoom, event, 'on');

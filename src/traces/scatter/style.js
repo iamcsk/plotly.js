@@ -10,21 +10,29 @@
 'use strict';
 
 var d3 = require('d3');
-var Drawing = require('../../components/drawing');
-var Registry = require('../../registry');
 
-function style(gd, cd) {
-    var s = cd ? cd[0].node3 : d3.select(gd).selectAll('g.trace.scatter');
+var Drawing = require('../../components/drawing');
+var ErrorBars = require('../../components/errorbars');
+
+
+module.exports = function style(gd) {
+    var s = d3.select(gd).selectAll('g.trace.scatter');
 
     s.style('opacity', function(d) {
         return d[0].trace.opacity;
     });
 
-    s.selectAll('g.points').each(function(d) {
-        var sel = d3.select(this);
-        var trace = d.trace || d[0].trace;
-        stylePoints(sel, trace, gd);
-    });
+    s.selectAll('g.points')
+        .each(function(d) {
+            var el = d3.select(this);
+            var pts = el.selectAll('path.point');
+            var trace = d.trace || d[0].trace;
+
+            pts.call(Drawing.pointStyle, trace, gd);
+
+            el.selectAll('text')
+                .call(Drawing.textPointStyle, trace, gd);
+        });
 
     s.selectAll('g.trace path.js-line')
         .call(Drawing.lineGroupStyle);
@@ -32,28 +40,5 @@ function style(gd, cd) {
     s.selectAll('g.trace path.js-fill')
         .call(Drawing.fillGroupStyle);
 
-    Registry.getComponentMethod('errorbars', 'style')(s);
-}
-
-function stylePoints(sel, trace, gd) {
-    Drawing.pointStyle(sel.selectAll('path.point'), trace, gd);
-    Drawing.textPointStyle(sel.selectAll('text'), trace, gd);
-}
-
-function styleOnSelect(gd, cd) {
-    var s = cd[0].node3;
-    var trace = cd[0].trace;
-
-    if(trace.selectedpoints) {
-        Drawing.selectedPointStyle(s.selectAll('path.point'), trace);
-        Drawing.selectedTextStyle(s.selectAll('text'), trace);
-    } else {
-        stylePoints(s, trace, gd);
-    }
-}
-
-module.exports = {
-    style: style,
-    stylePoints: stylePoints,
-    styleOnSelect: styleOnSelect
+    s.call(ErrorBars.style);
 };

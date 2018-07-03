@@ -65,14 +65,11 @@ module.exports = function cleanBins(trace, ax, binDirection) {
     var autoBinAttr = 'autobin' + binDirection;
 
     if(typeof trace[autoBinAttr] !== 'boolean') {
-        trace[autoBinAttr] = trace._fullInput[autoBinAttr] = trace._input[autoBinAttr] = !(
+        trace[autoBinAttr] = !(
             (bins.start || bins.start === 0) &&
             (bins.end || bins.end === 0)
         );
     }
 
-    if(!trace[autoBinAttr]) {
-        delete trace['nbins' + binDirection];
-        delete trace._fullInput['nbins' + binDirection];
-    }
+    if(!trace[autoBinAttr]) delete trace['nbins' + binDirection];
 };

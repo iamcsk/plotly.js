@@ -30,9 +30,6 @@ function Sieve(traces, separateNegativeValues, dontMergeOverlappingData) {
     this.separateNegativeValues = separateNegativeValues;
     this.dontMergeOverlappingData = dontMergeOverlappingData;
 
-    // for single-bin histograms - see histogram/calc
-    var width1 = Infinity;
-
     var positions = [];
     for(var i = 0; i < traces.length; i++) {
         var trace = traces[i];
@@ -40,16 +37,12 @@ function Sieve(traces, separateNegativeValues, dontMergeOverlappingData) {
             var bar = trace[j];
             if(bar.p !== BADNUM) positions.push(bar.p);
         }
-        if(trace[0] && trace[0].width1) {
-            width1 = Math.min(trace[0].width1, width1);
-        }
     }
     this.positions = positions;
 
-    var dv = Lib.distinctVals(positions);
+    var dv = Lib.distinctVals(this.positions);
     this.distinctPositions = dv.vals;
-    if(dv.vals.length === 1 && width1 !== Infinity) this.minDiff = width1;
-    else this.minDiff = Math.min(dv.minDiff, width1);
+    this.minDiff = dv.minDiff;
 
     this.binWidth = this.minDiff;
 

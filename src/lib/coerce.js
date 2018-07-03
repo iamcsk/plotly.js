@@ -16,24 +16,20 @@ var baseTraceAttrs = require('../plots/attributes');
 var getColorscale = require('../components/colorscale/get_scale');
 var colorscaleNames = Object.keys(require('../components/colorscale/scales'));
 var nestedProperty = require('./nested_property');
-var counterRegex = require('./regex').counter;
-var DESELECTDIM = require('../constants/interactions').DESELECTDIM;
-var wrap180 = require('./angles').wrap180;
-var isArrayOrTypedArray = require('./is_array').isArrayOrTypedArray;
 
-exports.valObjectMeta = {
+var ID_REGEX = /^([2-9]|[1-9][0-9]+)$/;
+
+exports.valObjects = {
     data_array: {
         // You can use *dflt=[] to force said array to exist though.
         description: [
             'An {array} of data.',
-            'The value MUST be an {array}, or we ignore it.',
-            'Note that typed arrays (e.g. Float32Array) are supported.'
+            'The value MUST be an {array}, or we ignore it.'
         ].join(' '),
         requiredOpts: [],
         otherOpts: ['dflt'],
         coerceFunction: function(v, propOut, dflt) {
-            // TODO maybe `v: {type: 'float32', vals: [/* ... */]}` also
-            if(isArrayOrTypedArray(v)) propOut.set(v);
+            if(Array.isArray(v)) propOut.set(v);
             else if(dflt !== undefined) propOut.set(dflt);
         }
     },
@@ -146,22 +142,6 @@ exports.valObjectMeta = {
             else propOut.set(dflt);
         }
     },
-    colorlist: {
-        description: [
-            'A list of colors.',
-            'Must be an {array} containing valid colors.',
-        ].join(' '),
-        requiredOpts: [],
-        otherOpts: ['dflt'],
-        coerceFunction: function(v, propOut, dflt) {
-            function isColor(color) {
-                return tinycolor(color).isValid();
-            }
-            if(!Array.isArray(v) || !v.length) propOut.set(dflt);
-            else if(v.every(isColor)) propOut.set(v);
-            else propOut.set(dflt);
-        }
-    },
     colorscale: {
         description: [
             'A Plotly colorscale either picked by a name:',
@@ -186,7 +166,10 @@ exports.valObjectMeta = {
         coerceFunction: function(v, propOut, dflt) {
             if(v === 'auto') propOut.set('auto');
             else if(!isNumeric(v)) propOut.set(dflt);
-            else propOut.set(wrap180(+v));
+            else {
+                if(Math.abs(v) > 180) v -= Math.round(v / 360) * 360;
+                propOut.set(+v);
+            }
         }
     },
     subplotid: {
@@ -196,21 +179,25 @@ exports.valObjectMeta = {
             '\'geo\', \'geo2\', \'geo3\', ...'
         ].join(' '),
         requiredOpts: ['dflt'],
-        otherOpts: ['regex'],
-        coerceFunction: function(v, propOut, dflt, opts) {
-            var regex = opts.regex || counterRegex(dflt);
-            if(typeof v === 'string' && regex.test(v)) {
+        otherOpts: [],
+        coerceFunction: function(v, propOut, dflt) {
+            var dlen = dflt.length;
+            if(typeof v === 'string' && v.substr(0, dlen) === dflt &&
+                    ID_REGEX.test(v.substr(dlen))) {
                 propOut.set(v);
                 return;
             }
             propOut.set(dflt);
         },
         validateFunction: function(v, opts) {
-            var dflt = opts.dflt;
+            var dflt = opts.dflt,
+                dlen = dflt.length;
 
             if(v === dflt) return true;
             if(typeof v !== 'string') return false;
-            if(counterRegex(dflt).test(v)) return true;
+            if(v.substr(0, dlen) === dflt && ID_REGEX.test(v.substr(dlen))) {
+                return true;
+            }
 
             return false;
         }
@@ -261,67 +248,19 @@ exports.valObjectMeta = {
             'An {array} of plot information.'
         ].join(' '),
         requiredOpts: ['items'],
-        // set `dimensions=2` for a 2D array or '1-2' for either
-        // `items` may be a single object instead of an array, in which case
-        // `freeLength` must be true.
-        // if `dimensions='1-2'` and items is a 1D array, then the value can
-        // either be a matching 1D array or an array of such matching 1D arrays
-        otherOpts: ['dflt', 'freeLength', 'dimensions'],
+        otherOpts: ['dflt', 'freeLength'],
         coerceFunction: function(v, propOut, dflt, opts) {
-
-            // simplified coerce function just for array items
-            function coercePart(v, opts, dflt) {
-                var out;
-                var propPart = {set: function(v) { out = v; }};
-
-                if(dflt === undefined) dflt = opts.dflt;
-
-                exports.valObjectMeta[opts.valType].coerceFunction(v, propPart, dflt, opts);
-
-                return out;
-            }
-
-            var twoD = opts.dimensions === 2 || (opts.dimensions === '1-2' && Array.isArray(v) && Array.isArray(v[0]));
-
             if(!Array.isArray(v)) {
                 propOut.set(dflt);
                 return;
             }
 
-            var items = opts.items;
-            var vOut = [];
-            var arrayItems = Array.isArray(items);
-            var arrayItems2D = arrayItems && twoD && Array.isArray(items[0]);
-            var innerItemsOnly = twoD && arrayItems && !arrayItems2D;
-            var len = (arrayItems && !innerItemsOnly) ? items.length : v.length;
-
-            var i, j, row, item, len2, vNew;
-
+            var items = opts.items,
+                vOut = [];
             dflt = Array.isArray(dflt) ? dflt : [];
 
-            if(twoD) {
-                for(i = 0; i < len; i++) {
-                    vOut[i] = [];
-                    row = Array.isArray(v[i]) ? v[i] : [];
-                    if(innerItemsOnly) len2 = items.length;
-                    else if(arrayItems) len2 = items[i].length;
-                    else len2 = row.length;
-
-                    for(j = 0; j < len2; j++) {
-                        if(innerItemsOnly) item = items[j];
-                        else if(arrayItems) item = items[i][j];
-                        else item = items;
-
-                        vNew = coercePart(row[j], item, (dflt[i] || [])[j]);
-                        if(vNew !== undefined) vOut[i][j] = vNew;
-                    }
-                }
-            }
-            else {
-                for(i = 0; i < len; i++) {
-                    vNew = coercePart(v[i], arrayItems ? items[i] : items, dflt[i]);
-                    if(vNew !== undefined) vOut[i] = vNew;
-                }
+            for(var i = 0; i < items.length; i++) {
+                exports.coerce(v, vOut, items, '[' + i + ']', dflt[i]);
             }
 
             propOut.set(vOut);
@@ -330,25 +269,15 @@ exports.valObjectMeta = {
             if(!Array.isArray(v)) return false;
 
             var items = opts.items;
-            var arrayItems = Array.isArray(items);
-            var twoD = opts.dimensions === 2;
 
             // when free length is off, input and declared lengths must match
             if(!opts.freeLength && v.length !== items.length) return false;
 
             // valid when all input items are valid
             for(var i = 0; i < v.length; i++) {
-                if(twoD) {
-                    if(!Array.isArray(v[i]) || (!opts.freeLength && v[i].length !== items[i].length)) {
-                        return false;
-                    }
-                    for(var j = 0; j < v[i].length; j++) {
-                        if(!exports.validate(v[i][j], arrayItems ? items[i][j] : items)) {
-                            return false;
-                        }
-                    }
-                }
-                else if(!exports.validate(v[i], arrayItems ? items[i] : items)) return false;
+                var isItemValid = exports.validate(v[i], opts.items[i]);
+
+                if(!isItemValid) return false;
             }
 
             return true;
@@ -360,7 +289,7 @@ exports.valObjectMeta = {
  * Ensures that container[attribute] has a valid value.
  *
  * attributes[attribute] is an object with possible keys:
- * - valType: data_array, enumerated, boolean, ... as in valObjectMeta
+ * - valType: data_array, enumerated, boolean, ... as in valObjects
  * - values: (enumerated only) array of allowed vals
  * - min, max: (number, integer only) inclusive bounds on allowed vals
  *      either or both may be omitted
@@ -382,12 +311,12 @@ exports.coerce = function(containerIn, containerOut, attributes, attribute, dflt
      * individual form (eg. some array vals can be numbers, even if the
      * single values must be color strings)
      */
-    if(opts.arrayOk && isArrayOrTypedArray(v)) {
+    if(opts.arrayOk && Array.isArray(v)) {
         propOut.set(v);
         return v;
     }
 
-    exports.valObjectMeta[opts.valType].coerceFunction(v, propOut, dflt, opts);
+    exports.valObjects[opts.valType].coerceFunction(v, propOut, dflt, opts);
 
     return propOut.get();
 };
@@ -434,7 +363,9 @@ exports.coerceFont = function(coerce, attr, dfltObj) {
  */
 exports.coerceHoverinfo = function(traceIn, traceOut, layoutOut) {
     var moduleAttrs = traceOut._module.attributes;
-    var attrs = moduleAttrs.hoverinfo ? moduleAttrs : baseTraceAttrs;
+    var attrs = moduleAttrs.hoverinfo ?
+        {hoverinfo: moduleAttrs.hoverinfo} :
+        baseTraceAttrs;
 
     var valObj = attrs.hoverinfo;
     var dflt;
@@ -451,48 +382,13 @@ exports.coerceHoverinfo = function(traceIn, traceOut, layoutOut) {
     return exports.coerce(traceIn, traceOut, attrs, 'hoverinfo', dflt);
 };
 
-/** Coerce shortcut for [un]selected.marker.opacity,
- *  which has special default logic, to ensure that it corresponds to the
- *  default selection behavior while allowing to be overtaken by any other
- *  [un]selected attribute.
- *
- *  N.B. This must be called *after* coercing all the other [un]selected attrs,
- *  to give the intended result.
- *
- * @param {object} traceOut : fullData item
- * @param {function} coerce : lib.coerce wrapper with implied first three arguments
- */
-exports.coerceSelectionMarkerOpacity = function(traceOut, coerce) {
-    if(!traceOut.marker) return;
-
-    var mo = traceOut.marker.opacity;
-    // you can still have a `marker` container with no markers if there's text
-    if(mo === undefined) return;
-
-    var smoDflt;
-    var usmoDflt;
-
-    // Don't give [un]selected.marker.opacity a default value if
-    // marker.opacity is an array: handle this during style step.
-    //
-    // Only give [un]selected.marker.opacity a default value if you don't
-    // set any other [un]selected attributes.
-    if(!isArrayOrTypedArray(mo) && !traceOut.selected && !traceOut.unselected) {
-        smoDflt = mo;
-        usmoDflt = DESELECTDIM * mo;
-    }
-
-    coerce('selected.marker.opacity', smoDflt);
-    coerce('unselected.marker.opacity', usmoDflt);
-};
-
 exports.validate = function(value, opts) {
-    var valObjectDef = exports.valObjectMeta[opts.valType];
+    var valObject = exports.valObjects[opts.valType];
 
-    if(opts.arrayOk && isArrayOrTypedArray(value)) return true;
+    if(opts.arrayOk && Array.isArray(value)) return true;
 
-    if(valObjectDef.validateFunction) {
-        return valObjectDef.validateFunction(value, opts);
+    if(valObject.validateFunction) {
+        return valObject.validateFunction(value, opts);
     }
 
     var failed = {},
@@ -501,6 +397,6 @@ exports.validate = function(value, opts) {
 
     // 'failed' just something mutable that won't be === anything else
 
-    valObjectDef.coerceFunction(value, propMock, failed, opts);
+    valObject.coerceFunction(value, propMock, failed, opts);
     return out !== failed;
 };

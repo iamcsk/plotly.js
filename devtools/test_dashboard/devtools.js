@@ -202,7 +202,7 @@ function searchMocks(e) {
 
     results.forEach(function(r) {
         var result = document.createElement('span');
-        result.className = getResultClass(r.name);
+        result.className = 'search-result';
         result.innerText = r.name;
 
         result.addEventListener('click', function() {
@@ -212,10 +212,6 @@ function searchMocks(e) {
             // Clear plots and plot selected.
             Tabs.purge();
             Tabs.plotMock(mockName);
-
-            mocksList.querySelectorAll('span').forEach(function(el) {
-                el.className = getResultClass(el.innerText);
-            });
         });
 
         mocksList.appendChild(result);
@@ -226,16 +222,8 @@ function searchMocks(e) {
     });
 }
 
-function getNameFromHash() {
-    return window.location.hash.replace(/^#/, '');
-}
-
-function getResultClass(name) {
-    return 'search-result' + (getNameFromHash() === name ? ' search-result__selected' : '');
-}
-
 function plotFromHash() {
-    var initialMock = getNameFromHash();
+    var initialMock = window.location.hash.replace(/^#/, '');
 
     if(initialMock.length > 0) {
         Tabs.plotMock(initialMock);

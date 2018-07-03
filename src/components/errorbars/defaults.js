@@ -44,10 +44,12 @@ module.exports = function(traceIn, traceOut, defaultColor, opts) {
     }
 
     if(type === 'data') {
-        coerce('array');
+        var array = coerce('array');
+        if(!array) containerOut.array = [];
         coerce('traceref');
         if(!symmetric) {
-            coerce('arrayminus');
+            var arrayminus = coerce('arrayminus');
+            if(!arrayminus) containerOut.arrayminus = [];
             coerce('tracerefminus');
         }
     }

@@ -22,16 +22,13 @@ module.exports = extendFlat({},
 
         z: {
             valType: 'data_array',
-            editType: 'calc',
             description: 'Sets the aggregation data.'
         },
         marker: {
             color: {
                 valType: 'data_array',
-                editType: 'calc',
                 description: 'Sets the aggregation data.'
-            },
-            editType: 'calc'
+            }
         },
 
         histnorm: histogramAttrs.histnorm,
@@ -45,8 +42,7 @@ module.exports = extendFlat({},
 
         xgap: heatmapAttrs.xgap,
         ygap: heatmapAttrs.ygap,
-        zsmooth: heatmapAttrs.zsmooth,
-        zhoverformat: heatmapAttrs.zhoverformat
+        zsmooth: heatmapAttrs.zsmooth
     },
     colorscaleAttrs,
     { autocolorscale: extendFlat({}, colorscaleAttrs.autocolorscale, {dflt: false}) },

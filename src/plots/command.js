@@ -6,9 +6,10 @@
 * LICENSE file in the root directory of this source tree.
 */
 
+
 'use strict';
 
-var Registry = require('../registry');
+var Plotly = require('../plotly');
 var Lib = require('../lib');
 
 /*
@@ -113,7 +114,7 @@ exports.manageCommandObserver = function(gd, container, commandList, onchange) {
     } else {
         // TODO: It'd be really neat to actually give a *reason* for this, but at least a warning
         // is a start
-        Lib.log('Unable to automatically bind plot updates to API command');
+        Lib.warn('Unable to automatically bind plot updates to API command');
 
         ret.lookupTable = {};
         ret.remove = function() {};
@@ -263,15 +264,17 @@ function bindingValueHasChanged(gd, binding, cache) {
 exports.executeAPICommand = function(gd, method, args) {
     if(method === 'skip') return Promise.resolve();
 
-    var _method = Registry.apiMethodRegistry[method];
+    var apiMethod = Plotly[method];
+
     var allArgs = [gd];
+
     if(!Array.isArray(args)) args = [];
 
     for(var i = 0; i < args.length; i++) {
         allArgs.push(args[i]);
     }
 
-    return _method.apply(null, allArgs).catch(function(err) {
+    return apiMethod.apply(null, allArgs).catch(function(err) {
         Lib.warn('API call to Plotly.' + method + ' rejected.', err);
         return Promise.reject(err);
     });

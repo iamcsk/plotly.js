@@ -355,8 +355,7 @@ module.exports = {
             return 'M0,' + rc + 'V-' + rc + 'M' + rc + ',0H-' + rc;
         },
         needLine: true,
-        noDot: true,
-        noFill: true
+        noDot: true
     },
     'x-thin': {
         n: 34,
@@ -366,8 +365,7 @@ module.exports = {
                 'M' + rx + ',-' + rx + 'L-' + rx + ',' + rx;
         },
         needLine: true,
-        noDot: true,
-        noFill: true
+        noDot: true
     },
     asterisk: {
         n: 35,
@@ -379,8 +377,7 @@ module.exports = {
                 'M' + rs + ',-' + rs + 'L-' + rs + ',' + rs;
         },
         needLine: true,
-        noDot: true,
-        noFill: true
+        noDot: true
     },
     hash: {
         n: 36,
@@ -392,8 +389,7 @@ module.exports = {
                 'M' + r2 + ',' + r1 + 'H-' + r2 +
                 'm0,-' + r2 + 'H' + r2;
         },
-        needLine: true,
-        noFill: true
+        needLine: true
     },
     'y-up': {
         n: 37,
@@ -404,8 +400,7 @@ module.exports = {
             return 'M-' + x + ',' + y1 + 'L0,0M' + x + ',' + y1 + 'L0,0M0,-' + y0 + 'L0,0';
         },
         needLine: true,
-        noDot: true,
-        noFill: true
+        noDot: true
     },
     'y-down': {
         n: 38,
@@ -416,8 +411,7 @@ module.exports = {
             return 'M-' + x + ',-' + y1 + 'L0,0M' + x + ',-' + y1 + 'L0,0M0,' + y0 + 'L0,0';
         },
         needLine: true,
-        noDot: true,
-        noFill: true
+        noDot: true
     },
     'y-left': {
         n: 39,
@@ -428,8 +422,7 @@ module.exports = {
             return 'M' + x1 + ',' + y + 'L0,0M' + x1 + ',-' + y + 'L0,0M-' + x0 + ',0L0,0';
         },
         needLine: true,
-        noDot: true,
-        noFill: true
+        noDot: true
     },
     'y-right': {
         n: 40,
@@ -440,8 +433,7 @@ module.exports = {
             return 'M-' + x1 + ',' + y + 'L0,0M-' + x1 + ',-' + y + 'L0,0M' + x0 + ',0L0,0';
         },
         needLine: true,
-        noDot: true,
-        noFill: true
+        noDot: true
     },
     'line-ew': {
         n: 41,
@@ -450,8 +442,7 @@ module.exports = {
             return 'M' + rc + ',0H-' + rc;
         },
         needLine: true,
-        noDot: true,
-        noFill: true
+        noDot: true
     },
     'line-ns': {
         n: 42,
@@ -460,8 +451,7 @@ module.exports = {
             return 'M0,' + rc + 'V-' + rc;
         },
         needLine: true,
-        noDot: true,
-        noFill: true
+        noDot: true
     },
     'line-ne': {
         n: 43,
@@ -470,8 +460,7 @@ module.exports = {
             return 'M' + rx + ',-' + rx + 'L-' + rx + ',' + rx;
         },
         needLine: true,
-        noDot: true,
-        noFill: true
+        noDot: true
     },
     'line-nw': {
         n: 44,
@@ -480,7 +469,6 @@ module.exports = {
             return 'M' + rx + ',' + rx + 'L-' + rx + ',-' + rx;
         },
         needLine: true,
-        noDot: true,
-        noFill: true
+        noDot: true
     }
 };

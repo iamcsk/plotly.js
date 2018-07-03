@@ -18,7 +18,7 @@ var svgTextUtils = require('../../lib/svg_text_utils');
 
 var Color = require('../../components/color');
 var Drawing = require('../../components/drawing');
-var Registry = require('../../registry');
+var ErrorBars = require('../../components/errorbars');
 
 var attributes = require('./attributes'),
     attributeText = attributes.text,
@@ -30,148 +30,120 @@ var attributes = require('./attributes'),
 // padding in pixels around text
 var TEXTPAD = 3;
 
-module.exports = function plot(gd, plotinfo, cdbar, barLayer) {
-    var xa = plotinfo.xaxis;
-    var ya = plotinfo.yaxis;
-    var fullLayout = gd._fullLayout;
+module.exports = function plot(gd, plotinfo, cdbar) {
+    var xa = plotinfo.xaxis,
+        ya = plotinfo.yaxis,
+        fullLayout = gd._fullLayout;
 
-    var bartraces = barLayer.selectAll('g.trace.bars')
-        .data(cdbar, function(d) { return d[0].trace.uid; });
+    var bartraces = plotinfo.plot.select('.barlayer')
+        .selectAll('g.trace.bars')
+        .data(cdbar);
 
     bartraces.enter().append('g')
-        .attr('class', 'trace bars')
-        .append('g')
-        .attr('class', 'points');
+        .attr('class', 'trace bars');
 
-    bartraces.exit().remove();
+    bartraces.append('g')
+        .attr('class', 'points')
+        .each(function(d) {
+            var t = d[0].t,
+                trace = d[0].trace,
+                poffset = t.poffset,
+                poffsetIsArray = Array.isArray(poffset);
 
-    bartraces.order();
+            d3.select(this).selectAll('g.point')
+                .data(Lib.identity)
+              .enter().append('g').classed('point', true)
+                .each(function(di, i) {
+                    // now display the bar
+                    // clipped xf/yf (2nd arg true): non-positive
+                    // log values go off-screen by plotwidth
+                    // so you see them continue if you drag the plot
+                    var p0 = di.p + ((poffsetIsArray) ? poffset[i] : poffset),
+                        p1 = p0 + di.w,
+                        s0 = di.b,
+                        s1 = s0 + di.s;
 
-    bartraces.each(function(d) {
-        var cd0 = d[0];
-        var t = cd0.t;
-        var trace = cd0.trace;
-        var sel = d3.select(this);
+                    var x0, x1, y0, y1;
+                    if(trace.orientation === 'h') {
+                        y0 = ya.c2p(p0, true);
+                        y1 = ya.c2p(p1, true);
+                        x0 = xa.c2p(s0, true);
+                        x1 = xa.c2p(s1, true);
+                    }
+                    else {
+                        x0 = xa.c2p(p0, true);
+                        x1 = xa.c2p(p1, true);
+                        y0 = ya.c2p(s0, true);
+                        y1 = ya.c2p(s1, true);
+                    }
 
-        if(!plotinfo.isRangePlot) cd0.node3 = sel;
+                    if(!isNumeric(x0) || !isNumeric(x1) ||
+                            !isNumeric(y0) || !isNumeric(y1) ||
+                            x0 === x1 || y0 === y1) {
+                        d3.select(this).remove();
+                        return;
+                    }
 
-        var poffset = t.poffset;
-        var poffsetIsArray = Array.isArray(poffset);
+                    var lw = (di.mlw + 1 || trace.marker.line.width + 1 ||
+                            (di.trace ? di.trace.marker.line.width : 0) + 1) - 1,
+                        offset = d3.round((lw / 2) % 1, 2);
 
-        var bars = sel.select('g.points').selectAll('g.point').data(Lib.identity);
+                    function roundWithLine(v) {
+                        // if there are explicit gaps, don't round,
+                        // it can make the gaps look crappy
+                        return (fullLayout.bargap === 0 && fullLayout.bargroupgap === 0) ?
+                            d3.round(Math.round(v) - offset, 2) : v;
+                    }
 
-        bars.enter().append('g')
-            .classed('point', true);
+                    function expandToVisible(v, vc) {
+                        // if it's not in danger of disappearing entirely,
+                        // round more precisely
+                        return Math.abs(v - vc) >= 2 ? roundWithLine(v) :
+                        // but if it's very thin, expand it so it's
+                        // necessarily visible, even if it might overlap
+                        // its neighbor
+                        (v > vc ? Math.ceil(v) : Math.floor(v));
+                    }
 
-        bars.exit().remove();
+                    if(!gd._context.staticPlot) {
+                        // if bars are not fully opaque or they have a line
+                        // around them, round to integer pixels, mainly for
+                        // safari so we prevent overlaps from its expansive
+                        // pixelation. if the bars ARE fully opaque and have
+                        // no line, expand to a full pixel to make sure we
+                        // can see them
+                        var op = Color.opacity(di.mc || trace.marker.color),
+                            fixpx = (op < 1 || lw > 0.01) ?
+                                roundWithLine : expandToVisible;
+                        x0 = fixpx(x0, x1);
+                        x1 = fixpx(x1, x0);
+                        y0 = fixpx(y0, y1);
+                        y1 = fixpx(y1, y0);
+                    }
 
-        bars.each(function(di, i) {
-            var bar = d3.select(this);
+                    // append bar path and text
+                    var bar = d3.select(this);
 
-            // now display the bar
-            // clipped xf/yf (2nd arg true): non-positive
-            // log values go off-screen by plotwidth
-            // so you see them continue if you drag the plot
-            var p0 = di.p + ((poffsetIsArray) ? poffset[i] : poffset),
-                p1 = p0 + di.w,
-                s0 = di.b,
-                s1 = s0 + di.s;
+                    bar.append('path')
+                        .style('vector-effect', 'non-scaling-stroke')
+                        .attr('d',
+                            'M' + x0 + ',' + y0 + 'V' + y1 + 'H' + x1 + 'V' + y0 + 'Z');
 
-            var x0, x1, y0, y1;
-            if(trace.orientation === 'h') {
-                y0 = ya.c2p(p0, true);
-                y1 = ya.c2p(p1, true);
-                x0 = xa.c2p(s0, true);
-                x1 = xa.c2p(s1, true);
-
-                // for selections
-                di.ct = [x1, (y0 + y1) / 2];
-            }
-            else {
-                x0 = xa.c2p(p0, true);
-                x1 = xa.c2p(p1, true);
-                y0 = ya.c2p(s0, true);
-                y1 = ya.c2p(s1, true);
-
-                // for selections
-                di.ct = [(x0 + x1) / 2, y1];
-            }
-
-            if(!isNumeric(x0) || !isNumeric(x1) ||
-                    !isNumeric(y0) || !isNumeric(y1) ||
-                    x0 === x1 || y0 === y1) {
-                bar.remove();
-                return;
-            }
-
-            var lw = (di.mlw + 1 || trace.marker.line.width + 1 ||
-                    (di.trace ? di.trace.marker.line.width : 0) + 1) - 1,
-                offset = d3.round((lw / 2) % 1, 2);
-
-            function roundWithLine(v) {
-                // if there are explicit gaps, don't round,
-                // it can make the gaps look crappy
-                return (fullLayout.bargap === 0 && fullLayout.bargroupgap === 0) ?
-                    d3.round(Math.round(v) - offset, 2) : v;
-            }
-
-            function expandToVisible(v, vc) {
-                // if it's not in danger of disappearing entirely,
-                // round more precisely
-                return Math.abs(v - vc) >= 2 ? roundWithLine(v) :
-                // but if it's very thin, expand it so it's
-                // necessarily visible, even if it might overlap
-                // its neighbor
-                (v > vc ? Math.ceil(v) : Math.floor(v));
-            }
-
-            if(!gd._context.staticPlot) {
-                // if bars are not fully opaque or they have a line
-                // around them, round to integer pixels, mainly for
-                // safari so we prevent overlaps from its expansive
-                // pixelation. if the bars ARE fully opaque and have
-                // no line, expand to a full pixel to make sure we
-                // can see them
-                var op = Color.opacity(di.mc || trace.marker.color),
-                    fixpx = (op < 1 || lw > 0.01) ?
-                        roundWithLine : expandToVisible;
-                x0 = fixpx(x0, x1);
-                x1 = fixpx(x1, x0);
-                y0 = fixpx(y0, y1);
-                y1 = fixpx(y1, y0);
-            }
-
-            Lib.ensureSingle(bar, 'path')
-                .style('vector-effect', 'non-scaling-stroke')
-                .attr('d',
-                    'M' + x0 + ',' + y0 + 'V' + y1 + 'H' + x1 + 'V' + y0 + 'Z')
-                .call(Drawing.setClipUrl, plotinfo.layerClipId);
-
-            appendBarText(gd, bar, d, i, x0, x1, y0, y1);
-
-            if(plotinfo.layerClipId) {
-                Drawing.hideOutsideRangePoint(d[i], bar.select('text'), xa, ya, trace.xcalendar, trace.ycalendar);
-            }
+                    appendBarText(gd, bar, d, i, x0, x1, y0, y1);
+                });
         });
 
-        // lastly, clip points groups of `cliponaxis !== false` traces
-        // on `plotinfo._hasClipOnAxisFalse === true` subplots
-        var hasClipOnAxisFalse = d[0].trace.cliponaxis === false;
-        Drawing.setClipUrl(sel, hasClipOnAxisFalse ? null : plotinfo.layerClipId);
-    });
-
     // error bars are on the top
-    Registry.getComponentMethod('errorbars', 'plot')(bartraces, plotinfo);
+    bartraces.call(ErrorBars.plot, plotinfo);
+
 };
 
 function appendBarText(gd, bar, calcTrace, i, x0, x1, y0, y1) {
-    var textPosition;
-
     function appendTextNode(bar, text, textFont) {
-        var textSelection = Lib.ensureSingle(bar, 'text')
+        var textSelection = bar.append('text')
             .text(text)
             .attr({
-                'class': 'bartext bartext-' + textPosition,
+                'class': 'bartext',
                 transform: '',
                 'text-anchor': 'middle',
                 // prohibit tex interpretation until we can handle
@@ -189,12 +161,10 @@ function appendBarText(gd, bar, calcTrace, i, x0, x1, y0, y1) {
         orientation = trace.orientation;
 
     var text = getText(trace, i);
-    textPosition = getTextPosition(trace, i);
+    if(!text) return;
 
-    if(!text || textPosition === 'none') {
-        bar.select('text').remove();
-        return;
-    }
+    var textPosition = getTextPosition(trace, i);
+    if(textPosition === 'none') return;
 
     var textFont = getTextFont(trace, i, gd._fullLayout.font),
         insideTextFont = getInsideTextFont(trace, i, textFont),
@@ -224,7 +194,6 @@ function appendBarText(gd, bar, calcTrace, i, x0, x1, y0, y1) {
     if(textPosition === 'auto') {
         if(isOutmostBar) {
             // draw text using insideTextFont and check if it fits inside bar
-            textPosition = 'inside';
             textSelection = appendTextNode(bar, text, insideTextFont);
 
             textBB = Drawing.bBox(textSelection.node()),

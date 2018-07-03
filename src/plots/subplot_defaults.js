@@ -10,7 +10,7 @@
 'use strict';
 
 var Lib = require('../lib');
-var handleDomainDefaults = require('./domain').defaults;
+var Plots = require('./plots');
 
 
 /**
@@ -41,13 +41,13 @@ var handleDomainDefaults = require('./domain').defaults;
  * }
  */
 module.exports = function handleSubplotDefaults(layoutIn, layoutOut, fullData, opts) {
-    var subplotType = opts.type;
-    var subplotAttributes = opts.attributes;
-    var handleDefaults = opts.handleDefaults;
-    var partition = opts.partition || 'x';
+    var subplotType = opts.type,
+        subplotAttributes = opts.attributes,
+        handleDefaults = opts.handleDefaults,
+        partition = opts.partition || 'x';
 
-    var ids = layoutOut._subplots[subplotType];
-    var idsLength = ids.length;
+    var ids = Plots.findSubplotIds(fullData, subplotType),
+        idsLength = ids.length;
 
     var subplotLayoutIn, subplotLayoutOut;
 
@@ -64,9 +64,8 @@ module.exports = function handleSubplotDefaults(layoutIn, layoutOut, fullData, o
 
         layoutOut[id] = subplotLayoutOut = {};
 
-        var dfltDomains = {};
-        dfltDomains[partition] = [i / idsLength, (i + 1) / idsLength];
-        handleDomainDefaults(subplotLayoutOut, layoutOut, coerce, dfltDomains);
+        coerce('domain.' + partition, [i / idsLength, (i + 1) / idsLength]);
+        coerce('domain.' + {x: 'y', y: 'x'}[partition]);
 
         opts.id = id;
         handleDefaults(subplotLayoutIn, subplotLayoutOut, coerce, opts);

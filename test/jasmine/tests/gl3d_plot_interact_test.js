@@ -203,11 +203,6 @@ describe('@gl Test gl3d plots', function() {
         .then(function() {
             assertHoverText(null, null, null, 'Clementine');
 
-            return Plotly.restyle(gd, 'hovertext', 'HEY');
-        })
-        .then(function() {
-            assertHoverText(null, null, null, 'HEY');
-
             return Plotly.restyle(gd, 'hoverinfo', 'z');
         })
         .then(function() {

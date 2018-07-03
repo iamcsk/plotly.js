@@ -10,7 +10,7 @@ describe('Test surface', function() {
         var supplyDefaults = Surface.supplyDefaults;
 
         var defaultColor = '#444',
-            layout = {_dfltTitle: {colorbar: 'cb'}};
+            layout = {};
 
         var traceIn, traceOut;
 
@@ -25,15 +25,14 @@ describe('Test surface', function() {
             expect(traceOut.visible).toBe(false);
         });
 
-        it('should NOT fill \'x\' and \'y\' if not provided', function() {
-            // this happens later on now
+        it('should fill \'x\' and \'y\' if not provided', function() {
             traceIn = {
                 z: [[1, 2, 3], [2, 1, 2]]
             };
 
             supplyDefaults(traceIn, traceOut, defaultColor, layout);
-            expect(traceOut.x).toBeUndefined();
-            expect(traceOut.y).toBeUndefined();
+            expect(traceOut.x).toEqual([0, 1, 2]);
+            expect(traceOut.y).toEqual([0, 1]);
         });
 
         it('should coerce \'project\' if contours or highlight lines are enabled', function() {
@@ -156,7 +155,7 @@ describe('Test surface', function() {
             traceIn = {
                 z: [[1, 2, 3], [2, 1, 2]]
             };
-            supplyDefaults(traceIn, traceOut, defaultColor, Lib.extendFlat({calendar: 'islamic'}, layout));
+            supplyDefaults(traceIn, traceOut, defaultColor, {calendar: 'islamic'});
 
             // we always fill calendar attributes, because it's hard to tell if
             // we're on a date axis at this point.

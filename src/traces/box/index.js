@@ -12,20 +12,18 @@ var Box = {};
 
 Box.attributes = require('./attributes');
 Box.layoutAttributes = require('./layout_attributes');
-Box.supplyDefaults = require('./defaults').supplyDefaults;
-Box.supplyLayoutDefaults = require('./layout_defaults').supplyLayoutDefaults;
+Box.supplyDefaults = require('./defaults');
+Box.supplyLayoutDefaults = require('./layout_defaults');
 Box.calc = require('./calc');
-Box.setPositions = require('./set_positions').setPositions;
-Box.plot = require('./plot').plot;
-Box.style = require('./style').style;
-Box.styleOnSelect = require('./style').styleOnSelect;
-Box.hoverPoints = require('./hover').hoverPoints;
-Box.selectPoints = require('./select');
+Box.setPositions = require('./set_positions');
+Box.plot = require('./plot');
+Box.style = require('./style');
+Box.hoverPoints = require('./hover');
 
 Box.moduleType = 'trace';
 Box.name = 'box';
 Box.basePlotModule = require('../../plots/cartesian');
-Box.categories = ['cartesian', 'svg', 'symbols', 'oriented', 'box-violin', 'showLegend', 'boxLayout', 'zoomScale'];
+Box.categories = ['cartesian', 'symbols', 'oriented', 'box', 'showLegend'];
 Box.meta = {
     description: [
         'In vertical (horizontal) box plots,',

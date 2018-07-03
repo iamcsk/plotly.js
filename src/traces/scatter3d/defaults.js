@@ -16,8 +16,10 @@ var subTypes = require('../scatter/subtypes');
 var handleMarkerDefaults = require('../scatter/marker_defaults');
 var handleLineDefaults = require('../scatter/line_defaults');
 var handleTextDefaults = require('../scatter/text_defaults');
+var errorBarsSupplyDefaults = require('../../components/errorbars/defaults');
 
 var attributes = require('./attributes');
+
 
 module.exports = function supplyDefaults(traceIn, traceOut, defaultColor, layout) {
 
@@ -41,11 +43,11 @@ module.exports = function supplyDefaults(traceIn, traceOut, defaultColor, layout
     }
 
     if(subTypes.hasMarkers(traceOut)) {
-        handleMarkerDefaults(traceIn, traceOut, defaultColor, layout, coerce, {noSelect: true});
+        handleMarkerDefaults(traceIn, traceOut, defaultColor, layout, coerce);
     }
 
     if(subTypes.hasText(traceOut)) {
-        handleTextDefaults(traceIn, traceOut, layout, coerce, {noSelect: true});
+        handleTextDefaults(traceIn, traceOut, layout, coerce);
     }
 
     var lineColor = (traceOut.line || {}).color,
@@ -61,7 +63,6 @@ module.exports = function supplyDefaults(traceIn, traceOut, defaultColor, layout
         }
     }
 
-    var errorBarsSupplyDefaults = Registry.getComponentMethod('errorbars', 'supplyDefaults');
     errorBarsSupplyDefaults(traceIn, traceOut, defaultColor, {axis: 'z'});
     errorBarsSupplyDefaults(traceIn, traceOut, defaultColor, {axis: 'y', inherit: 'z'});
     errorBarsSupplyDefaults(traceIn, traceOut, defaultColor, {axis: 'x', inherit: 'z'});
@@ -77,9 +78,10 @@ function handleXYZDefaults(traceIn, traceOut, coerce, layout) {
     handleCalendarDefaults(traceIn, traceOut, ['x', 'y', 'z'], layout);
 
     if(x && y && z) {
-        // TODO: what happens if one is missing?
         len = Math.min(x.length, y.length, z.length);
-        traceOut._length = traceOut._xlength = traceOut._ylength = traceOut._zlength = len;
+        if(len < x.length) traceOut.x = x.slice(0, len);
+        if(len < y.length) traceOut.y = y.slice(0, len);
+        if(len < z.length) traceOut.z = z.slice(0, len);
     }
 
     return len;

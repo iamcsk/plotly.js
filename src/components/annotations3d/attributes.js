@@ -10,9 +10,8 @@
 'use strict';
 
 var annAtts = require('../annotations/attributes');
-var overrideAll = require('../../plot_api/edit_types').overrideAll;
 
-module.exports = overrideAll({
+module.exports = {
     _isLinkedToArray: 'annotation',
 
     visible: annAtts.visible,
@@ -72,16 +71,12 @@ module.exports = overrideAll({
     showarrow: annAtts.showarrow,
     arrowcolor: annAtts.arrowcolor,
     arrowhead: annAtts.arrowhead,
-    startarrowhead: annAtts.startarrowhead,
-    arrowside: annAtts.arrowside,
     arrowsize: annAtts.arrowsize,
-    startarrowsize: annAtts.startarrowsize,
     arrowwidth: annAtts.arrowwidth,
     standoff: annAtts.standoff,
-    startstandoff: annAtts.startstandoff,
     hovertext: annAtts.hovertext,
     hoverlabel: annAtts.hoverlabel,
-    captureevents: annAtts.captureevents,
+    captureevents: annAtts.captureevents
 
     // maybes later?
     // clicktoshow: annAtts.clicktoshow,
@@ -94,4 +89,4 @@ module.exports = overrideAll({
     // xref: 'x'
     // yref: 'y
     // zref: 'z'
-}, 'calc', 'from-root');
+};

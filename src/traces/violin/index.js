@@ -17,14 +17,13 @@ module.exports = {
     setPositions: require('./set_positions'),
     plot: require('./plot'),
     style: require('./style'),
-    styleOnSelect: require('../scatter/style').styleOnSelect,
     hoverPoints: require('./hover'),
     selectPoints: require('../box/select'),
 
     moduleType: 'trace',
     name: 'violin',
     basePlotModule: require('../../plots/cartesian'),
-    categories: ['cartesian', 'svg', 'symbols', 'oriented', 'box-violin', 'showLegend', 'violinLayout', 'zoomScale'],
+    categories: ['cartesian', 'symbols', 'oriented', 'box-violin', 'showLegend'],
     meta: {
         description: [
             'In vertical (horizontal) violin plots,',

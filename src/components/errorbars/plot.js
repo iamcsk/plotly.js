@@ -43,17 +43,12 @@ module.exports = function plot(traces, plotinfo, transitionOpts) {
             trace.marker.maxdisplayed > 0
         );
 
-        if(!yObj.visible && !xObj.visible) d = [];
+        if(!yObj.visible && !xObj.visible) return;
 
         var errorbars = d3.select(this).selectAll('g.errorbar')
             .data(d, keyFunc);
 
         errorbars.exit().remove();
-
-        if(!d.length) return;
-
-        if(!xObj.visible) errorbars.selectAll('path.xerror').remove();
-        if(!yObj.visible) errorbars.selectAll('path.yerror').remove();
 
         errorbars.style('opacity', 1);
 
@@ -76,7 +71,6 @@ module.exports = function plot(traces, plotinfo, transitionOpts) {
 
             var path;
 
-            var yerror = errorbar.select('path.yerror');
             if(yObj.visible && isNumeric(coords.x) &&
                     isNumeric(coords.yh) &&
                     isNumeric(coords.ys)) {
@@ -88,6 +82,8 @@ module.exports = function plot(traces, plotinfo, transitionOpts) {
 
 
                 if(!coords.noYS) path += 'm-' + yw + ',0h' + (2 * yw); // shoe
+
+                var yerror = errorbar.select('path.yerror');
 
                 isNew = !yerror.size();
 
@@ -104,9 +100,7 @@ module.exports = function plot(traces, plotinfo, transitionOpts) {
 
                 yerror.attr('d', path);
             }
-            else yerror.remove();
 
-            var xerror = errorbar.select('path.xerror');
             if(xObj.visible && isNumeric(coords.y) &&
                     isNumeric(coords.xh) &&
                     isNumeric(coords.xs)) {
@@ -117,6 +111,8 @@ module.exports = function plot(traces, plotinfo, transitionOpts) {
                     'm0,-' + xw + 'H' + coords.xs; // bar
 
                 if(!coords.noXS) path += 'm0,-' + xw + 'v' + (2 * xw); // shoe
+
+                var xerror = errorbar.select('path.xerror');
 
                 isNew = !xerror.size();
 
@@ -133,7 +129,6 @@ module.exports = function plot(traces, plotinfo, transitionOpts) {
 
                 xerror.attr('d', path);
             }
-            else xerror.remove();
         });
     });
 };

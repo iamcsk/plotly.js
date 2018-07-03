@@ -6,26 +6,26 @@
 * LICENSE file in the root directory of this source tree.
 */
 
+
 'use strict';
 
 var Lib = require('../../lib');
-var Registry = require('../../registry');
 
-var attributes = require('./attributes');
 var constants = require('../scatter/constants');
 var subTypes = require('../scatter/subtypes');
 var handleXYDefaults = require('../scatter/xy_defaults');
 var handleMarkerDefaults = require('../scatter/marker_defaults');
 var handleLineDefaults = require('../scatter/line_defaults');
 var handleFillColorDefaults = require('../scatter/fillcolor_defaults');
+var errorBarsSupplyDefaults = require('../../components/errorbars/defaults');
+
+var attributes = require('./attributes');
+
 
 module.exports = function supplyDefaults(traceIn, traceOut, defaultColor, layout) {
     function coerce(attr, dflt) {
         return Lib.coerce(traceIn, traceOut, attributes, attr, dflt);
     }
-
-    var isOpen = traceIn.marker ? /-open/.test(traceIn.marker.symbol) : false;
-    var isBubble = subTypes.isBubble(traceIn);
 
     var len = handleXYDefaults(traceIn, traceOut, layout, coerce);
     if(!len) {
@@ -41,12 +41,8 @@ module.exports = function supplyDefaults(traceIn, traceOut, defaultColor, layout
         handleLineDefaults(traceIn, traceOut, defaultColor, layout, coerce);
     }
 
-    var dfltHoverOn = [];
-
     if(subTypes.hasMarkers(traceOut)) {
         handleMarkerDefaults(traceIn, traceOut, defaultColor, layout, coerce);
-        coerce('marker.line.width', isOpen || isBubble ? 1 : 0);
-        dfltHoverOn.push('points');
     }
 
     coerce('fill');
@@ -54,15 +50,6 @@ module.exports = function supplyDefaults(traceIn, traceOut, defaultColor, layout
         handleFillColorDefaults(traceIn, traceOut, defaultColor, coerce);
     }
 
-    if(traceOut.fill === 'tonext' || traceOut.fill === 'toself') {
-        dfltHoverOn.push('fills');
-    }
-
-    coerce('hoveron', dfltHoverOn.join('+') || 'points');
-
-    var errorBarsSupplyDefaults = Registry.getComponentMethod('errorbars', 'supplyDefaults');
     errorBarsSupplyDefaults(traceIn, traceOut, defaultColor, {axis: 'y'});
     errorBarsSupplyDefaults(traceIn, traceOut, defaultColor, {axis: 'x', inherit: 'y'});
-
-    Lib.coerceSelectionMarkerOpacity(traceOut, coerce);
 };

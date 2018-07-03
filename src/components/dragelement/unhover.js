@@ -11,20 +11,18 @@
 
 
 var Events = require('../../lib/events');
-var throttle = require('../../lib/throttle');
-var getGraphDiv = require('../../lib/get_graph_div');
 
-var hoverConstants = require('../fx/constants');
 
 var unhover = module.exports = {};
 
 
 unhover.wrapped = function(gd, evt, subplot) {
-    gd = getGraphDiv(gd);
+    if(typeof gd === 'string') gd = document.getElementById(gd);
 
     // Important, clear any queued hovers
-    if(gd._fullLayout) {
-        throttle.clear(gd._fullLayout._uid + hoverConstants.HOVERID);
+    if(gd._hoverTimer) {
+        clearTimeout(gd._hoverTimer);
+        gd._hoverTimer = undefined;
     }
 
     unhover.raw(gd, evt, subplot);

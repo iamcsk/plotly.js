@@ -2,24 +2,26 @@ var fs = require('fs');
 var path = require('path');
 
 var browserify = require('browserify');
-var minify = require('minify-stream');
+var UglifyJS = require('uglify-js');
 
 var constants = require('./constants');
 var compressAttributes = require('./compress_attributes');
+var patchMinified = require('./patch_minified');
 var strictD3 = require('./strict_d3');
 
 /** Convenience browserify wrapper
  *
  * @param {string} pathToIndex path to index file to bundle
  * @param {string} pathToBunlde path to destination bundle
+ *
  * @param {object} opts
+ *
  *  Browserify options:
  *  - standalone {string}
  *  - debug {boolean} [optional]
+ *
  *  Additional option:
  *  - pathToMinBundle {string} path to destination minified bundle
- *  - compressAttrs {boolean} do we compress attribute meta?
- * @param {function} cb callback
  *
  * Outputs one bundle (un-minified) file if opts.pathToMinBundle is omitted
  * or opts.debug is true. Otherwise outputs two file: one un-minified bundle and
@@ -27,56 +29,48 @@ var strictD3 = require('./strict_d3');
  *
  * Logs basename of bundle when completed.
  */
-module.exports = function _bundle(pathToIndex, pathToBundle, opts, cb) {
+module.exports = function _bundle(pathToIndex, pathToBundle, opts) {
     opts = opts || {};
 
+    // do we output a minified file?
     var pathToMinBundle = opts.pathToMinBundle;
+    var outputMinified = !!pathToMinBundle;
 
     var browserifyOpts = {};
     browserifyOpts.standalone = opts.standalone;
     browserifyOpts.debug = opts.debug;
+    browserifyOpts.transform = outputMinified ? [compressAttributes] : [];
 
-    browserifyOpts.transform = [];
-    if(opts.compressAttrs) {
-        browserifyOpts.transform.push(compressAttributes);
-    }
     if(opts.debug) {
         browserifyOpts.transform.push(strictD3);
     }
 
     var b = browserify(pathToIndex, browserifyOpts);
-    var pending = opts.pathToMinBundle ? 2 : 1;
+    var bundleWriteStream = fs.createWriteStream(pathToBundle);
 
-    function done() {
-        if(cb && --pending === 0) cb(null);
-    }
-
-    var bundleStream = b.bundle(function(err) {
-        if(err) {
-            if(cb) cb(err);
-            else throw err;
-        }
+    bundleWriteStream.on('finish', function() {
+        logger(pathToBundle);
     });
 
-    if(opts.pathToMinBundle) {
-        bundleStream
-            .pipe(minify(constants.uglifyOptions))
-            .pipe(fs.createWriteStream(pathToMinBundle))
-            .on('finish', function() {
-                logger(pathToMinBundle);
-                done();
-            });
-    }
+    b.bundle(function(err, buf) {
+        if(err) throw err;
 
-    bundleStream
-        .pipe(fs.createWriteStream(pathToBundle))
-        .on('finish', function() {
-            logger(pathToBundle);
-            done();
-        });
+        if(outputMinified) {
+            var minifiedCode = UglifyJS.minify(buf.toString(), constants.uglifyOptions).code;
+            minifiedCode = patchMinified(minifiedCode);
+
+            fs.writeFile(pathToMinBundle, minifiedCode, function(err) {
+                if(err) throw err;
+
+                logger(pathToMinBundle);
+            });
+        }
+    })
+    .pipe(bundleWriteStream);
 };
 
 function logger(pathToOutput) {
     var log = 'ok ' + path.basename(pathToOutput);
+
     console.log(log);
 }

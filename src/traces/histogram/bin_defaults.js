@@ -23,9 +23,8 @@ module.exports = function handleBinDefaults(traceIn, traceOut, coerce, binDirect
         coerce(binDirection + 'bins.start');
         coerce(binDirection + 'bins.end');
         coerce(binDirection + 'bins.size');
-
-        var autobin = coerce('autobin' + binDirection);
-        if(autobin !== false) coerce('nbins' + binDirection);
+        coerce('autobin' + binDirection);
+        coerce('nbins' + binDirection);
     });
 
     return traceOut;

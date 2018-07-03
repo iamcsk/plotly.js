@@ -65,8 +65,6 @@ function _extend(inputs, isDeep, keepAllKeys, noArrayCopies) {
 
     var input, key, src, copy, copyIsArray, clone, allPrimitives;
 
-    // TODO does this do the right thing for typed arrays?
-
     if(length === 2 && isArray(target) && isArray(inputs[1]) && target.length === 0) {
 
         allPrimitives = primitivesLoopSplice(inputs[1], target);

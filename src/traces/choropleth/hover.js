@@ -11,41 +11,24 @@
 
 var Axes = require('../../plots/cartesian/axes');
 var attributes = require('./attributes');
-var fillHoverText = require('../scatter/fill_hover_text');
 
-module.exports = function hoverPoints(pointData, xval, yval) {
+module.exports = function hoverPoints(pointData) {
     var cd = pointData.cd;
     var trace = cd[0].trace;
     var geo = pointData.subplot;
 
-    var pt, i, j, isInside;
+    // set on choropleth paths 'mouseover'
+    var pt = geo.choroplethHoverPt;
 
-    for(i = 0; i < cd.length; i++) {
-        pt = cd[i];
-        isInside = false;
+    if(!pt) return;
 
-        if(pt._polygons) {
-            for(j = 0; j < pt._polygons.length; j++) {
-                if(pt._polygons[j].contains([xval, yval])) {
-                    isInside = !isInside;
-                }
-                // for polygons that cross antimeridian as xval is in [-180, 180]
-                if(pt._polygons[j].contains([xval + 360, yval])) {
-                    isInside = !isInside;
-                }
-            }
+    var centroid = geo.projection(pt.properties.ct);
 
-            if(isInside) break;
-        }
-    }
-
-    if(!isInside || !pt) return;
-
-    pointData.x0 = pointData.x1 = pointData.xa.c2p(pt.ct);
-    pointData.y0 = pointData.y1 = pointData.ya.c2p(pt.ct);
+    pointData.x0 = pointData.x1 = centroid[0];
+    pointData.y0 = pointData.y1 = centroid[1];
 
     pointData.index = pt.index;
-    pointData.location = pt.loc;
+    pointData.location = pt.id;
     pointData.z = pt.z;
 
     makeHoverInfo(pointData, trace, pt, geo.mockAxis);
@@ -54,17 +37,17 @@ module.exports = function hoverPoints(pointData, xval, yval) {
 };
 
 function makeHoverInfo(pointData, trace, pt, axis) {
-    var hoverinfo = pt.hi || trace.hoverinfo;
+    var hoverinfo = trace.hoverinfo;
 
     var parts = (hoverinfo === 'all') ?
         attributes.hoverinfo.flags :
         hoverinfo.split('+');
 
-    var hasName = (parts.indexOf('name') !== -1);
-    var hasLocation = (parts.indexOf('location') !== -1);
-    var hasZ = (parts.indexOf('z') !== -1);
-    var hasText = (parts.indexOf('text') !== -1);
-    var hasIdAsNameLabel = !hasName && hasLocation;
+    var hasName = (parts.indexOf('name') !== -1),
+        hasLocation = (parts.indexOf('location') !== -1),
+        hasZ = (parts.indexOf('z') !== -1),
+        hasText = (parts.indexOf('text') !== -1),
+        hasIdAsNameLabel = !hasName && hasLocation;
 
     var text = [];
 
@@ -72,17 +55,14 @@ function makeHoverInfo(pointData, trace, pt, axis) {
         return Axes.tickText(axis, axis.c2l(val), 'hover').text;
     }
 
-    if(hasIdAsNameLabel) {
-        pointData.nameOverride = pt.loc;
-    } else {
+    if(hasIdAsNameLabel) pointData.nameOverride = pt.id;
+    else {
         if(hasName) pointData.nameOverride = trace.name;
-        if(hasLocation) text.push(pt.loc);
+        if(hasLocation) text.push(pt.id);
     }
 
     if(hasZ) text.push(formatter(pt.z));
-    if(hasText) {
-        fillHoverText(pt, trace, text);
-    }
+    if(hasText) text.push(pt.tx);
 
     pointData.extraText = text.join('<br>');
 }

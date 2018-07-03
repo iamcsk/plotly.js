@@ -10,7 +10,6 @@
 
 var Lib = require('../../lib');
 var attributes = require('./attributes');
-var handleDomainDefaults = require('../../plots/domain').defaults;
 
 module.exports = function supplyDefaults(traceIn, traceOut, defaultColor, layout) {
     function coerce(attr, dflt) {
@@ -18,41 +17,31 @@ module.exports = function supplyDefaults(traceIn, traceOut, defaultColor, layout
     }
 
     var coerceFont = Lib.coerceFont;
-    var len;
 
     var vals = coerce('values');
-    var hasVals = Lib.isArrayOrTypedArray(vals);
-    var labels = coerce('labels');
-    if(Array.isArray(labels)) {
-        len = labels.length;
-        if(hasVals) len = Math.min(len, vals.length);
+    if(!Array.isArray(vals) || !vals.length) {
+        traceOut.visible = false;
+        return;
     }
+
+    var labels = coerce('labels');
     if(!Array.isArray(labels)) {
-        if(!hasVals) {
-            // must have at least one of vals or labels
-            traceOut.visible = false;
-            return;
-        }
-
-        len = vals.length;
-
         coerce('label0');
         coerce('dlabel');
     }
 
-    if(!len) {
-        traceOut.visible = false;
-        return;
-    }
-    traceOut._length = len;
-
     var lineWidth = coerce('marker.line.width');
     if(lineWidth) coerce('marker.line.color');
 
-    coerce('marker.colors');
+    var colors = coerce('marker.colors');
+    if(!Array.isArray(colors)) traceOut.marker.colors = []; // later this will get padded with default colors
 
     coerce('scalegroup');
-    // TODO: hole needs to be coerced to the same value within a scaleegroup
+    // TODO: tilt, depth, and hole all need to be coerced to the same values within a scaleegroup
+    // (ideally actually, depth would get set the same *after* scaling, ie the same absolute depth)
+    // and if colors aren't specified we should match these up - potentially even if separate pies
+    // are NOT in the same sharegroup
+
 
     var textData = coerce('text');
     var textInfo = coerce('textinfo', Array.isArray(textData) ? 'text+percent' : 'percent');
@@ -71,7 +60,16 @@ module.exports = function supplyDefaults(traceIn, traceOut, defaultColor, layout
         }
     }
 
-    handleDomainDefaults(traceOut, layout, coerce);
+    coerce('domain.x');
+    coerce('domain.y');
+
+    // 3D attributes commented out until I finish them in a later PR
+    // var tilt = coerce('tilt');
+    // if(tilt) {
+    //     coerce('tiltaxis');
+    //     coerce('depth');
+    //     coerce('shading');
+    // }
 
     coerce('hole');
 

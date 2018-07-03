@@ -22,13 +22,7 @@ module.exports = function supplyDefaults(traceIn, traceOut, defaultColor, layout
         return Lib.coerce(traceIn, traceOut, attributes, attr, dflt);
     }
 
-    function coerce2(attr) {
-        return Lib.coerce2(traceIn, traceOut, attributes, attr);
-    }
-
     handleSampleDefaults(traceIn, traceOut, coerce, layout);
-    if(traceOut.visible === false) return;
-
-    handleContoursDefaults(traceIn, traceOut, coerce, coerce2);
+    handleContoursDefaults(traceIn, traceOut, coerce);
     handleStyleDefaults(traceIn, traceOut, coerce, layout);
 };

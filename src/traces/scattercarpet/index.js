@@ -12,19 +12,17 @@ var ScatterCarpet = {};
 
 ScatterCarpet.attributes = require('./attributes');
 ScatterCarpet.supplyDefaults = require('./defaults');
-ScatterCarpet.colorbar = require('../scatter/marker_colorbar');
+ScatterCarpet.colorbar = require('../scatter/colorbar');
 ScatterCarpet.calc = require('./calc');
 ScatterCarpet.plot = require('./plot');
-ScatterCarpet.style = require('../scatter/style').style;
-ScatterCarpet.styleOnSelect = require('../scatter/style').styleOnSelect;
+ScatterCarpet.style = require('./style');
 ScatterCarpet.hoverPoints = require('./hover');
-ScatterCarpet.selectPoints = require('../scatter/select');
-ScatterCarpet.eventData = require('./event_data');
+ScatterCarpet.selectPoints = require('./select');
 
 ScatterCarpet.moduleType = 'trace';
 ScatterCarpet.name = 'scattercarpet';
 ScatterCarpet.basePlotModule = require('../../plots/cartesian');
-ScatterCarpet.categories = ['svg', 'carpet', 'symbols', 'showLegend', 'carpetDependent', 'zoomScale'];
+ScatterCarpet.categories = ['carpet', 'symbols', 'markerColorscale', 'showLegend', 'carpetDependent'];
 ScatterCarpet.meta = {
     hrName: 'scatter_carpet',
     description: [

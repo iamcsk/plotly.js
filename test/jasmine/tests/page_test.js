@@ -68,7 +68,7 @@ describe('page rendering', function() {
             // visibility: hidden is inherited by all children (unless overridden
             // somewhere in the tree)
             allPresentationElements.each(function() {
-                expect(window.getComputedStyle(this).visibility).toBe('hidden');
+                expect(d3.select(this).style('visibility')).toBe('hidden');
             });
 
             gd3.style({visibility: null, display: 'none'});

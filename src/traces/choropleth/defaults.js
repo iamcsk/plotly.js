@@ -10,8 +10,10 @@
 'use strict';
 
 var Lib = require('../../lib');
+
 var colorscaleDefaults = require('../../components/colorscale/defaults');
 var attributes = require('./attributes');
+
 
 module.exports = function supplyDefaults(traceIn, traceOut, defaultColor, layout) {
     function coerce(attr, dflt) {
@@ -19,13 +21,22 @@ module.exports = function supplyDefaults(traceIn, traceOut, defaultColor, layout
     }
 
     var locations = coerce('locations');
-    var z = coerce('z');
 
-    if(!(locations && locations.length && Lib.isArrayOrTypedArray(z) && z.length)) {
+    var len;
+    if(locations) len = locations.length;
+
+    if(!locations || !len) {
         traceOut.visible = false;
         return;
     }
-    traceOut._length = Math.min(locations.length, z.length);
+
+    var z = coerce('z');
+    if(!Array.isArray(z)) {
+        traceOut.visible = false;
+        return;
+    }
+
+    if(z.length > len) traceOut.z = z.slice(0, len);
 
     coerce('locationmode');
 
@@ -33,11 +44,8 @@ module.exports = function supplyDefaults(traceIn, traceOut, defaultColor, layout
 
     coerce('marker.line.color');
     coerce('marker.line.width');
-    coerce('marker.opacity');
 
     colorscaleDefaults(
         traceIn, traceOut, layout, coerce, {prefix: '', cLetter: 'z'}
     );
-
-    Lib.coerceSelectionMarkerOpacity(traceOut, coerce);
 };

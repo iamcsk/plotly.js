@@ -343,29 +343,23 @@ describe('update menus interactions', function() {
         destroyGraphDiv();
     });
 
-    function assertPushMargins(specs) {
-        specs.forEach(function(val, i) {
-            var push = gd._fullLayout._pushmargin['updatemenu-' + i];
-            if(val) expect(push).toBeDefined(i);
-            else expect(push).toBeUndefined(i);
-        });
-    }
-
     it('should draw only visible menus', function(done) {
         var initialUM1 = Lib.extendDeep({}, gd.layout.updatemenus[1]);
         assertMenus([0, 0]);
-        assertPushMargins([true, true]);
+        expect(gd._fullLayout._pushmargin['updatemenu-0']).toBeDefined();
+        expect(gd._fullLayout._pushmargin['updatemenu-1']).toBeDefined();
 
-        Plotly.relayout(gd, 'updatemenus[0].visible', false)
-        .then(function() {
+        Plotly.relayout(gd, 'updatemenus[0].visible', false).then(function() {
             assertMenus([0]);
-            assertPushMargins([false, true]);
+            expect(gd._fullLayout._pushmargin['updatemenu-0']).toBeUndefined();
+            expect(gd._fullLayout._pushmargin['updatemenu-1']).toBeDefined();
 
             return Plotly.relayout(gd, 'updatemenus[1]', null);
         })
         .then(function() {
             assertNodeCount('.' + constants.containerClassName, 0);
-            assertPushMargins([false, false]);
+            expect(gd._fullLayout._pushmargin['updatemenu-0']).toBeUndefined();
+            expect(gd._fullLayout._pushmargin['updatemenu-1']).toBeUndefined();
 
             return Plotly.relayout(gd, {
                 'updatemenus[0].visible': true,
@@ -374,7 +368,8 @@ describe('update menus interactions', function() {
         })
         .then(function() {
             assertMenus([0, 0]);
-            assertPushMargins([true, true]);
+            expect(gd._fullLayout._pushmargin['updatemenu-0']).toBeDefined();
+            expect(gd._fullLayout._pushmargin['updatemenu-1']).toBeDefined();
 
             return Plotly.relayout(gd, {
                 'updatemenus[0].visible': false,
@@ -383,7 +378,8 @@ describe('update menus interactions', function() {
         })
         .then(function() {
             assertNodeCount('.' + constants.containerClassName, 0);
-            assertPushMargins([false, false]);
+            expect(gd._fullLayout._pushmargin['updatemenu-0']).toBeUndefined();
+            expect(gd._fullLayout._pushmargin['updatemenu-1']).toBeUndefined();
 
             return Plotly.relayout(gd, {
                 'updatemenus[2]': {
@@ -396,13 +392,17 @@ describe('update menus interactions', function() {
         })
         .then(function() {
             assertMenus([0]);
-            assertPushMargins([false, false, true]);
+            expect(gd._fullLayout._pushmargin['updatemenu-0']).toBeUndefined();
+            expect(gd._fullLayout._pushmargin['updatemenu-1']).toBeUndefined();
+            expect(gd._fullLayout._pushmargin['updatemenu-2']).toBeDefined();
 
             return Plotly.relayout(gd, 'updatemenus[0].visible', true);
         })
         .then(function() {
             assertMenus([0, 0]);
-            assertPushMargins([true, false, true]);
+            expect(gd._fullLayout._pushmargin['updatemenu-0']).toBeDefined();
+            expect(gd._fullLayout._pushmargin['updatemenu-1']).toBeUndefined();
+            expect(gd._fullLayout._pushmargin['updatemenu-2']).toBeDefined();
             expect(gd.layout.updatemenus.length).toEqual(3);
 
             return Plotly.relayout(gd, 'updatemenus[0]', null);
@@ -410,13 +410,11 @@ describe('update menus interactions', function() {
         .then(function() {
             assertMenus([0]);
             expect(gd.layout.updatemenus.length).toEqual(2);
-            assertPushMargins([false, true, false]);
 
             return Plotly.relayout(gd, 'updatemenus', null);
         })
         .then(function() {
             expect(gd.layout.updatemenus).toBeUndefined();
-            assertPushMargins([false, false, false]);
 
         })
         .then(done);
@@ -673,10 +671,6 @@ describe('update menus interactions', function() {
             // fold up buttons whenever new menus are added
             assertMenus([0, 0]);
 
-            // dropdown buttons container should still be on top of headers (and non-dropdown buttons)
-            var gButton = d3.select('.updatemenu-dropdown-button-group');
-            expect(gButton.node().nextSibling).toBe(null);
-
             return Plotly.relayout(gd, {
                 'updatemenus[0].bgcolor': null,
                 'paper_bgcolor': 'black'
@@ -780,7 +774,7 @@ describe('update menus interactions', function() {
 
     function assertItemColor(node, color) {
         var rect = node.select('rect');
-        expect(rect.node().style.fill).toEqual(color);
+        expect(rect.style('fill')).toEqual(color);
     }
 
     function assertItemDims(node, width, height) {
@@ -832,7 +826,7 @@ describe('update menus interaction with other components:', function() {
 
     afterEach(destroyGraphDiv);
 
-    it('draws buttons above sliders', function(done) {
+    it('buttons show be drawn above sliders', function(done) {
 
         Plotly.plot(createGraphDiv(), [{
             x: [1, 2, 3],
@@ -875,12 +869,19 @@ describe('update menus interaction with other components:', function() {
         })
         .then(function() {
             var infoLayer = d3.select('g.infolayer');
-            var menuLayer = d3.select('g.menulayer');
-            expect(infoLayer.selectAll('.slider-container').size()).toBe(1);
-            expect(menuLayer.selectAll('.updatemenu-container').size()).toBe(1);
-            expect(infoLayer.node().nextSibling).toBe(menuLayer.node());
+            var containerClassNames = ['slider-container', 'updatemenu-container'];
+            var list = [];
+
+            infoLayer.selectAll('*').each(function() {
+                var className = d3.select(this).attr('class');
+
+                if(containerClassNames.indexOf(className) !== -1) {
+                    list.push(className);
+                }
+            });
+
+            expect(list).toEqual(containerClassNames);
         })
-        .catch(fail)
         .then(done);
     });
 });

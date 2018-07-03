@@ -12,19 +12,17 @@
 var d3 = require('d3');
 var isNumeric = require('fast-isnumeric');
 
+var Plotly = require('../../plotly');
 var Plots = require('../../plots/plots');
-var Registry = require('../../registry');
 var Lib = require('../../lib');
 var Drawing = require('../drawing');
 var Color = require('../color');
 var svgTextUtils = require('../../lib/svg_text_utils');
 var interactConstants = require('../../constants/interactions');
 
-module.exports = {
-    draw: draw
-};
+var PLACEHOLDER_RE = /Click to enter .+ title/;
 
-var numStripRE = / [XY][0-9]* /;
+var Titles = module.exports = {};
 
 /**
  * Titles - (re)draw titles on the axes and plot:
@@ -37,7 +35,7 @@ var numStripRE = / [XY][0-9]* /;
  *      [traceIndex] - include only if this property applies to one trace
  *          (such as a colorbar title) - then editing pipes to Plotly.restyle
  *          instead of Plotly.relayout
- *      placeholder - placeholder text for an empty editable title
+ *      dfltName - the name of the title in placeholder text
  *      [avoid] {object} - include if this title should move to avoid other elements
  *          selection - d3 selection of elements to avoid
  *          side - which direction to move if there is a conflict
@@ -53,28 +51,25 @@ var numStripRE = / [XY][0-9]* /;
  *          offset - shift up/down in the rotated frame (unused?)
  *      containerGroup - if an svg <g> element already exists to hold this
  *          title, include here. Otherwise it will go in fullLayout._infolayer
- *
- *  @return {selection} d3 selection of title container group
  */
-function draw(gd, titleClass, options) {
+Titles.draw = function(gd, titleClass, options) {
     var cont = options.propContainer;
     var prop = options.propName;
-    var placeholder = options.placeholder;
     var traceIndex = options.traceIndex;
+    var name = options.dfltName;
     var avoid = options.avoid || {};
     var attributes = options.attributes;
     var transform = options.transform;
     var group = options.containerGroup;
 
     var fullLayout = gd._fullLayout;
-    var titlefont = cont.titlefont || {};
-    var font = titlefont.family;
-    var fontSize = titlefont.size;
-    var fontColor = titlefont.color;
+    var font = cont.titlefont.family;
+    var fontSize = cont.titlefont.size;
+    var fontColor = cont.titlefont.color;
 
     var opacity = 1;
     var isplaceholder = false;
-    var txt = (cont.title || '').trim();
+    var txt = cont.title.trim();
 
     // only make this title editable if we positively identify its property
     // as one that has editing enabled.
@@ -85,11 +80,7 @@ function draw(gd, titleClass, options) {
     var editable = gd._context.edits[editAttr];
 
     if(txt === '') opacity = 0;
-    // look for placeholder text while stripping out numbers from eg X2, Y3
-    // this is just for backward compatibility with the old version that had
-    // "Click to enter X2 title" and may have gotten saved in some old plots,
-    // we don't want this to show up when these are displayed.
-    else if(txt.replace(numStripRE, ' % ') === placeholder.replace(numStripRE, ' % ')) {
+    if(txt.match(PLACEHOLDER_RE)) {
         opacity = 0.2;
         isplaceholder = true;
         if(!editable) txt = '';
@@ -98,7 +89,10 @@ function draw(gd, titleClass, options) {
     var elShouldExist = txt || editable;
 
     if(!group) {
-        group = Lib.ensureSingle(fullLayout._infolayer, 'g', 'g-' + titleClass);
+        group = fullLayout._infolayer.selectAll('.g-' + titleClass)
+            .data([0]);
+        group.enter().append('g')
+            .classed('g-' + titleClass, true);
     }
 
     var el = group.selectAll('text')
@@ -113,28 +107,17 @@ function draw(gd, titleClass, options) {
         .attr('class', titleClass);
     el.exit().remove();
 
-    if(!elShouldExist) return group;
+    if(!elShouldExist) return;
 
     function titleLayout(titleEl) {
         Lib.syncOrAsync([drawTitle, scootTitle], titleEl);
     }
 
     function drawTitle(titleEl) {
-        var transformVal;
-
-        if(transform) {
-            transformVal = '';
-            if(transform.rotate) {
-                transformVal += 'rotate(' + [transform.rotate, attributes.x, attributes.y] + ')';
-            }
-            if(transform.offset) {
-                transformVal += 'translate(0, ' + transform.offset + ')';
-            }
-        } else {
-            transformVal = null;
-        }
-
-        titleEl.attr('transform', transformVal);
+        titleEl.attr('transform', transform ?
+            'rotate(' + [transform.rotate, attributes.x, attributes.y] +
+                ') translate(0, ' + transform.offset + ')' :
+            null);
 
         titleEl.style({
             'font-family': font,
@@ -216,10 +199,13 @@ function draw(gd, titleClass, options) {
 
     el.call(titleLayout);
 
+    var placeholderText = 'Click to enter ' + name + ' title';
+
     function setPlaceholder() {
         opacity = 0;
         isplaceholder = true;
-        el.text(placeholder)
+        txt = placeholderText;
+        el.text(txt)
             .on('mouseover.opacity', function() {
                 d3.select(this).transition()
                     .duration(interactConstants.SHOW_PLACEHOLDER).style('opacity', 1);
@@ -236,11 +222,8 @@ function draw(gd, titleClass, options) {
 
         el.call(svgTextUtils.makeEditable, {gd: gd})
             .on('edit', function(text) {
-                if(traceIndex !== undefined) {
-                    Registry.call('restyle', gd, prop, text, traceIndex);
-                } else {
-                    Registry.call('relayout', gd, prop, text);
-                }
+                if(traceIndex !== undefined) Plotly.restyle(gd, prop, text, traceIndex);
+                else Plotly.relayout(gd, prop, text);
             })
             .on('cancel', function() {
                 this.text(this.attr('data-unformatted'))
@@ -252,6 +235,4 @@ function draw(gd, titleClass, options) {
             });
     }
     el.classed('js-placeholder', isplaceholder);
-
-    return group;
-}
+};

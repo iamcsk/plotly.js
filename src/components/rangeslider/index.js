@@ -8,21 +8,13 @@
 
 'use strict';
 
-var Lib = require('../../lib');
-var attrs = require('./attributes');
-var oppAxisAttrs = require('./oppaxis_attributes');
-
 module.exports = {
     moduleType: 'component',
     name: 'rangeslider',
 
     schema: {
-        subplots: {
-            xaxis: {
-                rangeslider: Lib.extendFlat({}, attrs, {
-                    yaxis: oppAxisAttrs
-                })
-            }
+        layout: {
+            'xaxis.rangeslider': require('./attributes')
         }
     },
 

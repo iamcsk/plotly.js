@@ -53,11 +53,13 @@ module.exports = function colorbarDefaults(containerIn, containerOut, layout) {
 
     handleTickValueDefaults(colorbarIn, colorbarOut, coerce, 'linear');
 
-    var opts = {outerTicks: false, font: layout.font};
-    handleTickLabelDefaults(colorbarIn, colorbarOut, coerce, 'linear', opts);
-    handleTickMarkDefaults(colorbarIn, colorbarOut, coerce, 'linear', opts);
+    handleTickLabelDefaults(colorbarIn, colorbarOut, coerce, 'linear',
+        {outerTicks: false, font: layout.font, noHover: true});
 
-    coerce('title', layout._dfltTitle.colorbar);
+    handleTickMarkDefaults(colorbarIn, colorbarOut, coerce, 'linear',
+        {outerTicks: false, font: layout.font, noHover: true});
+
+    coerce('title');
     Lib.coerceFont(coerce, 'titlefont', layout.font);
     coerce('titleside');
 };
